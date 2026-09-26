@@ -5,10 +5,12 @@ import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
   return {
+    // Relative base path ensures assets resolve correctly on GitHub Pages (e.g. https://username.github.io/repo-name/)
+    base: './',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve('.'),
       },
     },
     server: {

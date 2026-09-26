@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Save,
   Globe,
@@ -16,6 +16,7 @@ import {
   Plus,
   Trash2,
   Check,
+  CheckCircle2,
   ExternalLink,
   Sparkles,
   Link2,
@@ -468,6 +469,12 @@ const LocalImageUploader: React.FC<LocalImageUploaderProps> = ({
   );
 };
 
+// Helper to extract form data payload ignoring volatile metadata timestamps
+const serializeFormPayload = (inv: InvitationData): string => {
+  const { updatedAt, viewsCount, ...rest } = inv;
+  return JSON.stringify(rest);
+};
+
 interface EditorViewProps {
   initialInvitation: InvitationData;
   onSave: (invitation: InvitationData) => void;
@@ -494,6 +501,66 @@ export const EditorView: React.FC<EditorViewProps> = ({
   const [publishToast, setPublishToast] = useState(false);
   const [previewOpened, setPreviewOpened] = useState(false);
   const [previewAnimationKey, setPreviewAnimationKey] = useState(0);
+
+  // Auto-Save feature state & refs
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'idle'>('saved');
+  const lastSavedPayloadRef = useRef<string>(serializeFormPayload(initialInvitation));
+  const latestInvitationRef = useRef<InvitationData>(invitation);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRenderRef = useRef<boolean>(true);
+
+  // Keep latest invitation in ref for unmount flush & immediate handlers
+  useEffect(() => {
+    latestInvitationRef.current = invitation;
+  }, [invitation]);
+
+  // Debounced auto-save effect triggered on any invitation form data change
+  useEffect(() => {
+    // Skip auto-save on initial mount
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+
+    const currentPayload = serializeFormPayload(invitation);
+    if (currentPayload === lastSavedPayloadRef.current) {
+      return;
+    }
+
+    setAutoSaveStatus('saving');
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      lastSavedPayloadRef.current = serializeFormPayload(invitation);
+      onSave(invitation);
+      setAutoSaveStatus('saved');
+      debounceTimerRef.current = null;
+    }, 700);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [invitation, onSave]);
+
+  // Flush any pending auto-save on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        const currentPayload = serializeFormPayload(latestInvitationRef.current);
+        if (currentPayload !== lastSavedPayloadRef.current) {
+          lastSavedPayloadRef.current = currentPayload;
+          onSave(latestInvitationRef.current);
+        }
+      }
+    };
+  }, [onSave]);
+
   const [previewHighContrast, setPreviewHighContrast] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -573,40 +640,82 @@ export const EditorView: React.FC<EditorViewProps> = ({
   useEffect(() => {
     if (initialInvitation && initialInvitation.id === invitation.id) {
       if (initialInvitation.updatedAt !== invitation.updatedAt) {
-        setInvitation((prev) => ({
-          ...prev,
-          coverPhotoUrl: initialInvitation.coverPhotoUrl || prev.coverPhotoUrl,
-          mempelaiPria: {
-            ...prev.mempelaiPria,
-            fotoUrl: initialInvitation.mempelaiPria?.fotoUrl || prev.mempelaiPria.fotoUrl,
-          },
-          mempelaiWanita: {
-            ...prev.mempelaiWanita,
-            fotoUrl: initialInvitation.mempelaiWanita?.fotoUrl || prev.mempelaiWanita.fotoUrl,
-          },
-          gallery: initialInvitation.gallery && initialInvitation.gallery.length > 0 ? initialInvitation.gallery : prev.gallery,
-          loveStories: initialInvitation.loveStories && initialInvitation.loveStories.length > 0 ? initialInvitation.loveStories : prev.loveStories,
-          isPublished: initialInvitation.isPublished !== undefined ? initialInvitation.isPublished : prev.isPublished,
-          updatedAt: initialInvitation.updatedAt,
-        }));
+        setInvitation((prev) => {
+          const nextInv = {
+            ...prev,
+            coverPhotoUrl: initialInvitation.coverPhotoUrl || prev.coverPhotoUrl,
+            mempelaiPria: {
+              ...prev.mempelaiPria,
+              fotoUrl: initialInvitation.mempelaiPria?.fotoUrl || prev.mempelaiPria.fotoUrl,
+            },
+            mempelaiWanita: {
+              ...prev.mempelaiWanita,
+              fotoUrl: initialInvitation.mempelaiWanita?.fotoUrl || prev.mempelaiWanita.fotoUrl,
+            },
+            gallery: initialInvitation.gallery && initialInvitation.gallery.length > 0 ? initialInvitation.gallery : prev.gallery,
+            loveStories: initialInvitation.loveStories && initialInvitation.loveStories.length > 0 ? initialInvitation.loveStories : prev.loveStories,
+            isPublished: initialInvitation.isPublished !== undefined ? initialInvitation.isPublished : prev.isPublished,
+            updatedAt: initialInvitation.updatedAt,
+          };
+          lastSavedPayloadRef.current = serializeFormPayload(nextInv);
+          return nextInv;
+        });
       }
     }
   }, [initialInvitation]);
 
   const handleSaveDraft = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
     const draft = { ...invitation, isPublished: false };
     setInvitation(draft);
+    lastSavedPayloadRef.current = serializeFormPayload(draft);
     onSave(draft);
+    setAutoSaveStatus('saved');
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2500);
   };
 
   const handlePublish = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
     const updated = { ...invitation, isPublished: true };
     setInvitation(updated);
+    lastSavedPayloadRef.current = serializeFormPayload(updated);
     onSave(updated);
+    setAutoSaveStatus('saved');
     setPublishToast(true);
     setTimeout(() => setPublishToast(false), 3000);
+  };
+
+  const handleBackToDashboard = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    const currentPayload = serializeFormPayload(latestInvitationRef.current);
+    if (currentPayload !== lastSavedPayloadRef.current) {
+      lastSavedPayloadRef.current = currentPayload;
+      onSave(latestInvitationRef.current);
+    }
+    onBackToDashboard();
+  };
+
+  const handleFullscreenPreview = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    const currentPayload = serializeFormPayload(latestInvitationRef.current);
+    if (currentPayload !== lastSavedPayloadRef.current) {
+      lastSavedPayloadRef.current = currentPayload;
+      onSave(latestInvitationRef.current);
+    }
+    onFullscreenPreview(latestInvitationRef.current);
   };
 
   const handleExportCSV = () => {
@@ -689,9 +798,9 @@ export const EditorView: React.FC<EditorViewProps> = ({
         <div className="flex items-center gap-3">
           <button
             id="editor-btn-back"
-            onClick={onBackToDashboard}
+            onClick={handleBackToDashboard}
             className="p-2 rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors"
-            title="Kembali ke Dashboard"
+            title="Kembali ke Dashboard (Perubahan tersimpan otomatis)"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -713,10 +822,49 @@ export const EditorView: React.FC<EditorViewProps> = ({
               >
                 {invitation.isPublished ? 'Terbit' : 'Draft'}
               </span>
+
+              {/* Desktop Auto-Save Live Status Indicator */}
+              <div className="hidden sm:flex items-center">
+                {autoSaveStatus === 'saving' && (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[11px] text-amber-800 bg-amber-50/90 border border-amber-200 px-2.5 py-0.5 rounded-full font-medium shadow-xs"
+                    title="Menyimpan perubahan form otomatis ke App state & penyimpanan..."
+                  >
+                    <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                    <span>Menyimpan otomatis...</span>
+                  </span>
+                )}
+                {autoSaveStatus === 'saved' && (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[11px] text-emerald-800 bg-emerald-50/90 border border-emerald-200 px-2.5 py-0.5 rounded-full font-medium shadow-xs transition-all duration-300"
+                    title="Semua perubahan form telah tersimpan otomatis ke App state & penyimpanan"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Tersimpan otomatis</span>
+                  </span>
+                )}
+              </div>
             </div>
-            <p className="text-[11px] text-stone-400 pl-1.5">
-              URL: #invite/{invitation.slug}
-            </p>
+            <div className="flex items-center gap-2 pl-1.5">
+              <p className="text-[11px] text-stone-400">
+                URL: #invite/{invitation.slug}
+              </p>
+              {/* Mobile Auto-Save Indicator */}
+              <div className="sm:hidden flex items-center">
+                {autoSaveStatus === 'saving' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 font-medium">
+                    <Loader2 className="w-2.5 h-2.5 animate-spin text-amber-600" />
+                    <span>Menyimpan...</span>
+                  </span>
+                )}
+                {autoSaveStatus === 'saved' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
+                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                    <span>Tersimpan</span>
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -745,7 +893,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
           {/* Fullscreen Preview */}
           <button
             id="editor-btn-fullscreen"
-            onClick={() => onFullscreenPreview(invitation)}
+            onClick={handleFullscreenPreview}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-stone-300 hover:bg-stone-50 text-stone-700 text-xs font-semibold transition-colors"
           >
             <Eye className="w-4 h-4 text-stone-500" />
