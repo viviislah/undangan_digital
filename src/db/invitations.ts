@@ -148,6 +148,31 @@ export async function deleteInvitationFromDb(id: string): Promise<boolean> {
   }
 }
 
+export async function deleteAllDraftsFromDb(): Promise<number> {
+  try {
+    const result = await db
+      .delete(invitations)
+      .where(eq(invitations.isPublished, false))
+      .returning({ id: invitations.id });
+    return result.length;
+  } catch (error) {
+    console.error('Failed to delete drafts from database:', error);
+    throw new Error('Database delete drafts failed.', { cause: error });
+  }
+}
+
+export async function deleteAllInvitationsFromDb(): Promise<number> {
+  try {
+    // Delete RSVPs first due to foreign-key relationship
+    await db.delete(rsvps);
+    const result = await db.delete(invitations).returning({ id: invitations.id });
+    return result.length;
+  } catch (error) {
+    console.error('Failed to delete all invitations from database:', error);
+    throw new Error('Database delete all invitations failed.', { cause: error });
+  }
+}
+
 export async function incrementInvitationViewsInDb(slugOrId: string): Promise<number> {
   try {
     const result = await db

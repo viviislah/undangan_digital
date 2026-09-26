@@ -251,16 +251,39 @@ export const SAMPLE_INVITATION_2: InvitationData = {
 
 export const getStoredInvitations = (): InvitationData[] => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      const initial = [SAMPLE_INVITATION_1, SAMPLE_INVITATION_2];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
-      return initial;
+    const ALL_PURGED_FLAG = 'undanganku_all_invitations_purged_v2';
+    // If the purge flag is not set yet, purge all saved invitations as requested
+    if (!localStorage.getItem(ALL_PURGED_FLAG)) {
+      try {
+        localStorage.setItem(STORAGE_KEY, '[]');
+        localStorage.setItem(ALL_PURGED_FLAG, 'true');
+      } catch {}
+      return [];
     }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      // Clear mock RSVPs from default sample invitations to keep list pristine
+
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw || raw === '[]') {
+      return [];
+    }
+    let parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      if (parsed.length === 0) return [];
       let changed = false;
+
+      // Purge any stale draft invitations requested by user
+      const DRAFTS_PURGED_FLAG = 'wedding_drafts_purged_flag_v1';
+      if (!localStorage.getItem(DRAFTS_PURGED_FLAG)) {
+        const nonDrafts = parsed.filter((inv: any) => inv.isPublished !== false);
+        if (nonDrafts.length !== parsed.length) {
+          parsed = nonDrafts;
+          changed = true;
+        }
+        try {
+          localStorage.setItem(DRAFTS_PURGED_FLAG, 'true');
+        } catch {}
+      }
+
+      // Clear mock RSVPs from default sample invitations to keep list pristine
       const cleaned = parsed.map((inv: any) => {
         let updatedInv = { ...inv };
         if (inv.id === 'inv-gold-001' && (!updatedInv.coverPhotoUrl || updatedInv.coverPhotoUrl.includes('photo-1519741497674-611481863552'))) {
@@ -298,10 +321,10 @@ export const getStoredInvitations = (): InvitationData[] => {
       }
       return cleaned;
     }
-    return [SAMPLE_INVITATION_1, SAMPLE_INVITATION_2];
+    return [];
   } catch (err) {
     console.error('Error reading localStorage invitations:', err);
-    return [SAMPLE_INVITATION_1, SAMPLE_INVITATION_2];
+    return [];
   }
 };
 
@@ -408,6 +431,48 @@ export const deleteInvitationFromStorage = (id: string): InvitationData[] => {
   return filtered;
 };
 
+export const deleteAllDraftsFromStorage = (): InvitationData[] => {
+  const all = getStoredInvitations();
+  const filtered = all.filter((i) => i.isPublished !== false);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  } catch (err) {
+    console.error('Failed to delete drafts from localStorage:', err);
+  }
+
+  if (typeof fetch !== 'undefined') {
+    fetch('/api/invitations-drafts', { method: 'DELETE' }).catch(() => {});
+  }
+
+  return filtered;
+};
+
+export const deleteAllInvitationsFromStorage = (): InvitationData[] => {
+  const ALL_PURGED_FLAG = 'undanganku_all_invitations_purged_v2';
+  try {
+    localStorage.setItem(STORAGE_KEY, '[]');
+    localStorage.setItem(ALL_PURGED_FLAG, 'true');
+  } catch (err) {
+    console.error('Failed to delete all invitations from localStorage:', err);
+  }
+
+  if (typeof fetch !== 'undefined') {
+    fetch('/api/invitations', { method: 'DELETE' }).catch(() => {});
+  }
+
+  return [];
+};
+
+export const loadSampleInvitationsToStorage = (): InvitationData[] => {
+  const samples = [SAMPLE_INVITATION_1, SAMPLE_INVITATION_2];
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(samples));
+  } catch (err) {
+    console.error('Failed to load sample invitations:', err);
+  }
+  return samples;
+};
+
 export const findInvitationBySlugOrId = (slugOrId: string): InvitationData | undefined => {
   const all = getStoredInvitations();
   return all.find((i) => i.slug === slugOrId || i.id === slugOrId);
@@ -440,10 +505,15 @@ export const syncAllInvitationsFromServer = async (): Promise<InvitationData[]> 
     const res = await fetch('/api/invitations');
     if (res.ok) {
       const serverList = await res.json();
-      if (Array.isArray(serverList) && serverList.length > 0) {
+      if (Array.isArray(serverList)) {
         const local = getStoredInvitations();
         const map = new Map<string, InvitationData>();
-        local.forEach((inv) => map.set(inv.id, inv));
+        // Only keep local if published; do not restore deleted drafts
+        local.forEach((inv) => {
+          if (inv.isPublished !== false) {
+            map.set(inv.id, inv);
+          }
+        });
         serverList.forEach((inv: InvitationData) => map.set(inv.id, inv));
         const merged = Array.from(map.values());
         localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
@@ -811,85 +881,53 @@ export const createNewInvitationFromTemplate = (
     heroSubtitle: customData?.heroSubtitle || heroSubtitle,
     coverPhotoUrl: template.thumbnail,
     mempelaiPria: {
-      namaLengkap: 'Farhan Maulana, S.T.',
-      namaPanggilan: 'Farhan',
-      orangTua: 'Putra tercinta Bpk. Ahmad Dahlan & Ibu Nurhayati',
-      anakKe: 'Putra Pertama',
-      instagram: 'farhan.maulana',
-      fotoUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80',
+      namaLengkap: customData?.mempelaiPria?.namaLengkap || '',
+      namaPanggilan: customData?.mempelaiPria?.namaPanggilan || '',
+      orangTua: customData?.mempelaiPria?.orangTua || '',
+      anakKe: customData?.mempelaiPria?.anakKe || '',
+      instagram: customData?.mempelaiPria?.instagram || '',
+      fotoUrl: customData?.mempelaiPria?.fotoUrl || '',
     },
     mempelaiWanita: {
-      namaLengkap: 'Nabila Safira, S.Psi.',
-      namaPanggilan: 'Nabila',
-      orangTua: 'Putri tercinta Bpk. Wahyu Hidayat & Ibu Sri Mulyani',
-      anakKe: 'Putri Kedua',
-      instagram: 'nabila.safira',
-      fotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+      namaLengkap: customData?.mempelaiWanita?.namaLengkap || '',
+      namaPanggilan: customData?.mempelaiWanita?.namaPanggilan || '',
+      orangTua: customData?.mempelaiWanita?.orangTua || '',
+      anakKe: customData?.mempelaiWanita?.anakKe || '',
+      instagram: customData?.mempelaiWanita?.instagram || '',
+      fotoUrl: customData?.mempelaiWanita?.fotoUrl || '',
     },
-    events: [
+    events: customData?.events || [
       {
         id: 'evt-1',
-        namaAcara: 'Akad Nikah',
+        namaAcara: 'Akad Nikah / Pemberkatan',
         tanggal: dateStr,
-        waktuMulai: '08:30',
-        waktuSelesai: '10:30',
+        waktuMulai: '08:00',
+        waktuSelesai: '10:00',
         zonaWaktu: 'WIB',
-        namaTempat: 'Gedung Serbaguna Puri Asri',
-        alamat: 'Jl. Merdeka No. 88, Menteng, Jakarta Pusat',
-        linkGoogleMaps: 'https://maps.google.com/?q=Jakarta',
+        namaTempat: '',
+        alamat: '',
+        linkGoogleMaps: '',
       },
       {
         id: 'evt-2',
         namaAcara: 'Resepsi Pernikahan',
         tanggal: dateStr,
         waktuMulai: '11:00',
-        waktuSelesai: '15:00',
+        waktuSelesai: '14:00',
         zonaWaktu: 'WIB',
-        namaTempat: 'Grand Ballroom Puri Asri',
-        alamat: 'Jl. Merdeka No. 88, Menteng, Jakarta Pusat',
-        linkGoogleMaps: 'https://maps.google.com/?q=Jakarta',
+        namaTempat: '',
+        alamat: '',
+        linkGoogleMaps: '',
       },
     ],
-    loveStories: [
-      {
-        id: 'story-1',
-        tahun: '2021',
-        judul: 'Awal Bertemu',
-        cerita: 'Pertemuan pertama yang tak disengaja di perpustakaan kota.',
-      },
-      {
-        id: 'story-2',
-        tahun: '2023',
-        judul: 'Komitmen Bersama',
-        cerita: 'Memutuskan untuk saling mendampingi dan melangkah bersama.',
-      },
-    ],
-    gallery: [
-      {
-        id: 'g-1',
-        url: template.thumbnail,
-        caption: 'Momen Bahagia Bersama',
-      },
-      {
-        id: 'g-2',
-        url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
-        caption: 'Menuju Hari Bahagia',
-      },
-    ],
-    bankAccounts: [
-      {
-        id: 'b-1',
-        namaBank: 'BCA',
-        nomorRekening: '1234567890',
-        atasNama: 'Farhan Maulana',
-        catatan: 'Rekening Mempelai',
-      },
-    ],
-    giftAddress: {
-      penerima: 'Farhan & Nabila',
-      nomorTelepon: '0812-0000-1111',
-      alamatLengkap: 'Jl. Melati Indah No. 12, Jakarta',
-      catatanKurir: 'Mohon hubungi sebelum mengantar kado.',
+    loveStories: customData?.loveStories || [],
+    gallery: customData?.gallery || [],
+    bankAccounts: customData?.bankAccounts || [],
+    giftAddress: customData?.giftAddress || {
+      penerima: '',
+      nomorTelepon: '',
+      alamatLengkap: '',
+      catatanKurir: '',
     },
     rsvpList: [],
     theme: { ...template.defaultTheme },

@@ -734,14 +734,14 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                   className={`${themeVisuals.fontDisplay} text-2xl sm:text-3xl lg:text-4xl font-normal tracking-wide drop-shadow-md leading-tight pt-0.5`}
                   style={{ color: '#FFFFFF' }}
                 >
-                  <span>{invitation.mempelaiPria.namaPanggilan}</span>
+                  <span>{invitation.mempelaiPria.namaPanggilan || 'Mempelai Pria'}</span>
                   <span
                     className="inline-block text-xl sm:text-2xl mx-2 font-serif"
                     style={{ color: isHighContrast ? '#FFE600' : themeVisuals.palette.secondary }}
                   >
                     &
                   </span>
-                  <span>{invitation.mempelaiWanita.namaPanggilan}</span>
+                  <span>{invitation.mempelaiWanita.namaPanggilan || 'Mempelai Wanita'}</span>
                 </h1>
 
                 <p className={`text-[10px] sm:text-[11px] tracking-[0.2em] uppercase font-light ${
@@ -955,52 +955,77 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
         />
 
         <div className="space-y-4 max-w-md mx-auto pt-6 text-white w-full flex flex-col items-center">
-          {/* Islamic Bismillah Header if applicable */}
-          <ThemeBismillahHeader theme={themeVisuals} />
-
-          <span
-            className="text-[11px] uppercase tracking-[0.35em] font-semibold"
-            style={{ color: themeVisuals.palette.secondary || '#FDE68A' }}
+          {/* Islamic Bismillah Header & Tagline with Fade-In + Slide-Up */}
+          <IntersectionSection
+            as="div"
+            slideDistance={18}
+            delay={0.06}
+            duration={0.75}
+            className="flex flex-col items-center space-y-2 w-full"
           >
-            {invitation.greetingTitle || themeVisuals.tagline}
-          </span>
-
-          <h1
-            className={`${themeVisuals.fontDisplay} ${themeVisuals.headingSizeClass} font-normal tracking-tight leading-tight drop-shadow-md`}
-            style={{ color: themeVisuals.palette.heading || '#FFFFFF' }}
-          >
-            {invitation.mempelaiPria.namaPanggilan}
+            <ThemeBismillahHeader theme={themeVisuals} />
             <span
-              className="block text-2xl sm:text-3xl font-serif my-1"
-              style={{ color: themeVisuals.palette.secondary || themeVisuals.palette.primary }}
+              className="text-[11px] uppercase tracking-[0.35em] font-semibold text-center"
+              style={{ color: themeVisuals.palette.secondary || '#FDE68A' }}
             >
-              &
+              {invitation.greetingTitle || themeVisuals.tagline}
             </span>
-            {invitation.mempelaiWanita.namaPanggilan}
-          </h1>
+          </IntersectionSection>
 
-          <p 
-            className="text-xs sm:text-sm font-light max-w-xs mx-auto leading-relaxed pt-1 opacity-90"
-            style={{ color: themeVisuals.palette.text }}
+          {/* Mempelai Names Heading with Fade-In + Slide-Up */}
+          <IntersectionSection
+            as="div"
+            slideDistance={24}
+            delay={0.14}
+            duration={0.8}
+            className="w-full text-center"
           >
-            {invitation.heroSubtitle}
-          </p>
+            <h1
+              className={`${themeVisuals.fontDisplay} ${themeVisuals.headingSizeClass} font-normal tracking-tight leading-tight drop-shadow-md`}
+              style={{ color: themeVisuals.palette.heading || '#FFFFFF' }}
+            >
+              {invitation.mempelaiPria.namaPanggilan || 'Mempelai Pria'}
+              <span
+                className="block text-2xl sm:text-3xl font-serif my-1"
+                style={{ color: themeVisuals.palette.secondary || themeVisuals.palette.primary }}
+              >
+                &
+              </span>
+              {invitation.mempelaiWanita.namaPanggilan || 'Mempelai Wanita'}
+            </h1>
+          </IntersectionSection>
 
-          <p
-            className="text-xs tracking-[0.2em] uppercase font-medium pt-2"
-            style={{ color: themeVisuals.palette.secondary || '#FDE68A' }}
+          {/* Subtitle & Event Date with Fade-In + Slide-Up */}
+          <IntersectionSection
+            as="div"
+            slideDistance={20}
+            delay={0.22}
+            duration={0.75}
+            className="w-full text-center space-y-2"
           >
-            {formattedMainDate}
-          </p>
+            <p 
+              className="text-xs sm:text-sm font-light max-w-xs mx-auto leading-relaxed pt-1 opacity-90"
+              style={{ color: themeVisuals.palette.text }}
+            >
+              {invitation.heroSubtitle}
+            </p>
+
+            <p
+              className="text-xs tracking-[0.2em] uppercase font-medium pt-1"
+              style={{ color: themeVisuals.palette.secondary || '#FDE68A' }}
+            >
+              {formattedMainDate}
+            </p>
+          </IntersectionSection>
 
           {/* COUNTDOWN SECTION WITH INTERSECTION OBSERVER & THEMED CARDS */}
           <IntersectionSection
             as="div"
             id="section-countdown"
-            slideDistance={32}
-            delay={0.15}
-            duration={0.9}
-            className="pt-5 w-full flex flex-col items-center"
+            slideDistance={26}
+            delay={0.28}
+            duration={0.85}
+            className="pt-4 w-full flex flex-col items-center"
           >
             <div className="flex items-center justify-center gap-2 mb-2.5">
               <div
@@ -1050,7 +1075,12 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
             }}
           >
             {/* Top Flourish */}
-            <div
+            <IntersectionSection
+              as="div"
+              direction="up"
+              slideDistance={16}
+              delay={0.1}
+              duration={0.7}
               className="w-10 h-10 mx-auto rounded-full flex items-center justify-center shadow-inner"
               style={{
                 backgroundColor: themeVisuals.palette.accentLight,
@@ -1058,24 +1088,48 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
               }}
             >
               <ThemeTopOrnament theme={themeVisuals} size="sm" />
-            </div>
+            </IntersectionSection>
 
-            <ThemeBismillahHeader theme={themeVisuals} />
-
-            <p
-              className="text-xs sm:text-sm italic leading-relaxed font-serif px-2"
-              style={{ color: themeVisuals.palette.quote || themeVisuals.palette.text }}
+            <IntersectionSection
+              as="div"
+              direction="up"
+              slideDistance={18}
+              delay={0.16}
+              duration={0.75}
             >
-              "{invitation.quoteText}"
-            </p>
+              <ThemeBismillahHeader theme={themeVisuals} />
+            </IntersectionSection>
+
+            <IntersectionSection
+              as="div"
+              direction="up"
+              slideDistance={22}
+              delay={0.22}
+              duration={0.8}
+            >
+              <p
+                className="text-xs sm:text-sm italic leading-relaxed font-serif px-2"
+                style={{ color: themeVisuals.palette.quote || themeVisuals.palette.text }}
+              >
+                "{invitation.quoteText}"
+              </p>
+            </IntersectionSection>
 
             {invitation.quoteSource && (
-              <p
-                className="text-[11px] font-bold tracking-[0.2em] uppercase pt-1"
-                style={{ color: themeVisuals.palette.heading || themeVisuals.palette.primary }}
+              <IntersectionSection
+                as="div"
+                direction="up"
+                slideDistance={16}
+                delay={0.28}
+                duration={0.75}
               >
-                — {invitation.quoteSource}
-              </p>
+                <p
+                  className="text-[11px] font-bold tracking-[0.2em] uppercase pt-1"
+                  style={{ color: themeVisuals.palette.heading || themeVisuals.palette.primary }}
+                >
+                  — {invitation.quoteSource}
+                </p>
+              </IntersectionSection>
             )}
           </div>
         </IntersectionSection>
@@ -1085,11 +1139,17 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
       <IntersectionSection
         as="section"
         id="section-couple"
-        slideDistance={40}
-        duration={0.9}
+        slideDistance={32}
+        duration={0.85}
         className="py-12 px-5 max-w-md mx-auto space-y-8 overflow-hidden"
       >
-        <div className="text-center space-y-1.5">
+        <IntersectionSection
+          as="div"
+          slideDistance={22}
+          delay={0.06}
+          duration={0.75}
+          className="text-center space-y-1.5"
+        >
           <div className="flex items-center justify-center mb-1">
             <ThemeTopOrnament theme={themeVisuals} size="sm" />
           </div>
@@ -1109,14 +1169,14 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
             className="w-10 h-0.5 mx-auto my-1"
             style={{ backgroundColor: themeVisuals.palette.primary, opacity: 0.5 }}
           />
-        </div>
+        </IntersectionSection>
 
-        {/* Mempelai Pria (Groom - Slides from Left) */}
+        {/* Mempelai Pria (Groom - Fade-In + Slide-Up) */}
         <IntersectionSection
           as="div"
-          direction="left"
-          slideDistance={40}
-          delay={0.1}
+          direction="up"
+          slideDistance={30}
+          delay={0.12}
           duration={0.85}
           className={`group flex flex-col items-center text-center space-y-4 p-5 sm:p-7 ${themeVisuals.cardShapeClass} backdrop-blur-sm border shadow-lg transition-transform hover:-translate-y-1`}
           style={{
@@ -1145,7 +1205,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                 src={resolveExternalMediaUrl(invitation.mempelaiPria.fotoUrl) || FALLBACK_GROOM_IMG}
                 fallbackSrc={FALLBACK_GROOM_IMG}
                 alt={invitation.mempelaiPria.namaLengkap}
-                direction="left"
+                direction="up"
                 shape={
                   (invitation.theme?.couplePhotoShape || themeVisuals.couplePhotoShape) === 'arch' ||
                   (invitation.theme?.couplePhotoShape || themeVisuals.couplePhotoShape) === 'dome'
@@ -1199,13 +1259,13 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
           )}
         </IntersectionSection>
 
-        {/* Ampersand Divider with Glow & Scale */}
+        {/* Ampersand Divider with Fade-In + Slide-Up */}
         <IntersectionSection
           as="div"
-          direction="zoom"
-          slideDistance={0}
-          delay={0.15}
-          duration={0.65}
+          direction="up"
+          slideDistance={18}
+          delay={0.16}
+          duration={0.7}
           className="flex items-center justify-center"
         >
           <div
@@ -1223,11 +1283,11 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
           </div>
         </IntersectionSection>
 
-        {/* Mempelai Wanita (Bride - Slides from Right) */}
+        {/* Mempelai Wanita (Bride - Fade-In + Slide-Up) */}
         <IntersectionSection
           as="div"
-          direction="right"
-          slideDistance={40}
+          direction="up"
+          slideDistance={30}
           delay={0.2}
           duration={0.85}
           className={`group flex flex-col items-center text-center space-y-4 p-5 sm:p-7 ${themeVisuals.cardShapeClass} backdrop-blur-sm border shadow-lg transition-transform hover:-translate-y-1 ${
@@ -1259,7 +1319,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                 src={resolveExternalMediaUrl(invitation.mempelaiWanita.fotoUrl) || FALLBACK_BRIDE_IMG}
                 fallbackSrc={FALLBACK_BRIDE_IMG}
                 alt={invitation.mempelaiWanita.namaLengkap}
-                direction="right"
+                direction="up"
                 shape={
                   (invitation.theme?.couplePhotoShape || themeVisuals.couplePhotoShape) === 'arch' ||
                   (invitation.theme?.couplePhotoShape || themeVisuals.couplePhotoShape) === 'dome'
@@ -1318,11 +1378,17 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
       <IntersectionSection
         as="section"
         id="section-events"
-        slideDistance={40}
-        duration={0.9}
+        slideDistance={32}
+        duration={0.85}
         className="py-12 px-5 max-w-md mx-auto space-y-6"
       >
-        <div className="text-center space-y-1">
+        <IntersectionSection
+          as="div"
+          slideDistance={22}
+          delay={0.06}
+          duration={0.75}
+          className="text-center space-y-1"
+        >
           <div className="flex items-center justify-center mb-1">
             <ThemeTopOrnament theme={themeVisuals} size="sm" />
           </div>
@@ -1342,7 +1408,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
             className="w-10 h-0.5 mx-auto my-1"
             style={{ backgroundColor: themeVisuals.palette.primary, opacity: 0.5 }}
           />
-        </div>
+        </IntersectionSection>
 
         <div className="space-y-6">
           {invitation.events.map((eventItem, idx) => {
@@ -1472,11 +1538,17 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
         <IntersectionSection
           as="section"
           id="section-love-story"
-          slideDistance={40}
-          duration={0.9}
+          slideDistance={32}
+          duration={0.85}
           className="py-12 px-5 max-w-md mx-auto space-y-6"
         >
-          <div className="text-center space-y-1">
+          <IntersectionSection
+            as="div"
+            slideDistance={22}
+            delay={0.06}
+            duration={0.75}
+            className="text-center space-y-1"
+          >
             <div className="flex items-center justify-center mb-1">
               <ThemeTopOrnament theme={themeVisuals} size="sm" />
             </div>
@@ -1496,7 +1568,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
               className="w-10 h-0.5 mx-auto my-1"
               style={{ backgroundColor: invitation.theme?.storyYearColor || invitation.theme?.storyHeadingColor || themeVisuals.palette.primary, opacity: 0.5 }}
             />
-          </div>
+          </IntersectionSection>
 
           <div
             className="relative border-l-2 ml-4 space-y-8 pl-6 my-4"
@@ -1506,8 +1578,8 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
               <IntersectionSection
                 as="div"
                 key={story.id}
-                slideDistance={30}
-                delay={sIndex * 0.12}
+                slideDistance={26}
+                delay={sIndex * 0.1}
                 duration={0.8}
                 className="relative group space-y-2"
               >
@@ -1571,11 +1643,17 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
         <IntersectionSection
           as="section"
           id="section-gallery"
-          slideDistance={40}
-          duration={0.9}
+          slideDistance={32}
+          duration={0.85}
           className="py-12 px-5 max-w-md mx-auto space-y-6"
         >
-          <div className="text-center space-y-1">
+          <IntersectionSection
+            as="div"
+            slideDistance={22}
+            delay={0.06}
+            duration={0.75}
+            className="text-center space-y-1"
+          >
             <div className="flex items-center justify-center mb-1">
               <ThemeTopOrnament theme={themeVisuals} size="sm" />
             </div>
@@ -1595,7 +1673,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
               className="w-10 h-0.5 mx-auto my-1"
               style={{ backgroundColor: themeVisuals.palette.primary, opacity: 0.5 }}
             />
-          </div>
+          </IntersectionSection>
 
           {/* Asymmetric Editorial Grid */}
           <div className="grid grid-cols-2 gap-3.5">
@@ -1606,9 +1684,9 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                 <IntersectionSection
                   as="div"
                   key={photo.id}
-                  slideDistance={30}
+                  slideDistance={26}
                   delay={(index % 4) * 0.08}
-                  duration={0.85}
+                  duration={0.8}
                   onClick={() => setLightboxIndex(index)}
                   className={`group relative ${themeVisuals.cardShapeClass} overflow-hidden bg-stone-200 cursor-pointer shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 border border-stone-200/50 dark:border-white/10 ${
                     isLarge ? 'col-span-2 h-64' : 'h-48'
@@ -1648,11 +1726,17 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
         <IntersectionSection
           as="section"
           id="section-gift"
-          slideDistance={40}
-          duration={0.9}
+          slideDistance={32}
+          duration={0.85}
           className="py-12 px-5 max-w-md mx-auto space-y-6 text-center"
         >
-          <div className="space-y-1">
+          <IntersectionSection
+            as="div"
+            slideDistance={22}
+            delay={0.06}
+            duration={0.75}
+            className="space-y-1"
+          >
             <div
               className="w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-2 shadow-sm"
               style={{
@@ -1677,7 +1761,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
             <p className="text-xs text-stone-500 dark:text-stone-400 max-w-xs mx-auto leading-relaxed pt-1 font-light">
               Doa restu Anda merupakan karunia terindah bagi kami. Namun apabila Anda ingin memberikan tanda kasih secara digital:
             </p>
-          </div>
+          </IntersectionSection>
 
           <div className="space-y-3 pt-1">
             {invitation.bankAccounts.map((bank, idx) => {
@@ -1891,15 +1975,15 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
           <IntersectionSection
             as="section"
             id="section-rsvp"
-            slideDistance={40}
-            duration={0.9}
+            slideDistance={32}
+            duration={0.85}
             className="py-12 px-5 max-w-md mx-auto space-y-6"
           >
-            <motion.div
-              initial={{ opacity: 0, y: 25 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.65 }}
+            <IntersectionSection
+              as="div"
+              slideDistance={22}
+              delay={0.06}
+              duration={0.75}
               className="text-center space-y-2"
             >
               <div className="flex items-center justify-center mb-1">
@@ -1955,205 +2039,63 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                   <span>Scan QR Form RSVP</span>
                 </button>
               </div>
-            </motion.div>
+            </IntersectionSection>
 
-            {/* Form RSVP with Modern High-Contrast Design */}
-            <motion.form
-              initial={{ opacity: 0, y: 35 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-20px' }}
-              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              onSubmit={handleSubmitRSVP}
-              className={`p-6 sm:p-7 ${themeVisuals.cardShapeClass} border-2 shadow-2xl space-y-5`}
-              style={{
-                backgroundColor: isHighContrast
-                  ? (isDarkTheme ? '#0F0F14' : '#FFFFFF')
-                  : (isDarkTheme ? 'rgba(24, 24, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)'),
-                borderColor: isHighContrast
-                  ? (isDarkTheme ? '#FFFFFF' : '#000000')
-                  : (isDarkTheme ? 'rgba(229, 192, 123, 0.35)' : 'rgba(226, 232, 240, 0.95)'),
-                boxShadow: isDarkTheme
-                  ? '0 20px 45px rgba(0, 0, 0, 0.7), 0 0 25px rgba(229, 192, 123, 0.15)'
-                  : '0 20px 45px rgba(0, 0, 0, 0.08), 0 2px 10px rgba(0, 0, 0, 0.04)',
-              }}
+            {/* Form RSVP with Modern High-Contrast Design & Fade-In Slide-Up */}
+            <IntersectionSection
+              as="div"
+              slideDistance={28}
+              delay={0.12}
+              duration={0.8}
             >
-              {/* Success Checkmark Modal / Card upon submission */}
-              {rsvpSubmitted && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-400 text-emerald-950 text-xs flex items-center justify-between gap-3 shadow-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                      <Check className="w-5 h-5 stroke-[2.5]" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="font-extrabold text-xs sm:text-sm text-emerald-900">
-                        Konfirmasi & Doa Berhasil Tersimpan!
-                      </p>
-                      <p className="text-emerald-800 leading-normal text-[11px] sm:text-xs">
-                        Terima kasih banyak! Konfirmasi kehadiran dan ucapan do'a Anda telah tercatat rapi di buku tamu.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setRsvpSubmitted(false)}
-                    className="p-1.5 rounded-lg hover:bg-emerald-200 text-emerald-800 transition-colors text-xs font-bold cursor-pointer shrink-0"
-                    title="Tutup pemberitahuan"
+              <form
+                onSubmit={handleSubmitRSVP}
+                className={`p-6 sm:p-7 ${themeVisuals.cardShapeClass} border-2 shadow-2xl space-y-5`}
+                style={{
+                  backgroundColor: isHighContrast
+                    ? (isDarkTheme ? '#0F0F14' : '#FFFFFF')
+                    : (isDarkTheme ? 'rgba(24, 24, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)'),
+                  borderColor: isHighContrast
+                    ? (isDarkTheme ? '#FFFFFF' : '#000000')
+                    : (isDarkTheme ? 'rgba(229, 192, 123, 0.35)' : 'rgba(226, 232, 240, 0.95)'),
+                  boxShadow: isDarkTheme
+                    ? '0 20px 45px rgba(0, 0, 0, 0.7), 0 0 25px rgba(229, 192, 123, 0.15)'
+                    : '0 20px 45px rgba(0, 0, 0, 0.08), 0 2px 10px rgba(0, 0, 0, 0.04)',
+                }}
+              >
+                {/* Success Checkmark Modal / Card upon submission */}
+                {rsvpSubmitted && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-400 text-emerald-950 text-xs flex items-center justify-between gap-3 shadow-lg"
                   >
-                    ✕
-                  </button>
-                </motion.div>
-              )}
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                        <Check className="w-5 h-5 stroke-[2.5]" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="font-extrabold text-xs sm:text-sm text-emerald-900">
+                          Konfirmasi & Doa Berhasil Tersimpan!
+                        </p>
+                        <p className="text-emerald-800 leading-normal text-[11px] sm:text-xs">
+                          Terima kasih banyak! Konfirmasi kehadiran dan ucapan do'a Anda telah tercatat rapi di buku tamu.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRsvpSubmitted(false)}
+                      className="p-1.5 rounded-lg hover:bg-emerald-200 text-emerald-800 transition-colors text-xs font-bold cursor-pointer shrink-0"
+                      title="Tutup pemberitahuan"
+                    >
+                      ✕
+                    </button>
+                  </motion.div>
+                )}
 
-              {/* Nama Lengkap Input */}
-              <div className="space-y-1.5 text-left">
-                <label
-                  className="text-xs font-extrabold uppercase tracking-wider flex items-center justify-between"
-                  style={{
-                    color: isHighContrast
-                      ? (isDarkTheme ? '#FFFFFF' : '#000000')
-                      : (isDarkTheme ? '#F3F4F6' : '#1C1917'),
-                  }}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span>Nama Lengkap</span>
-                    <span className="text-amber-500 font-bold">*</span>
-                  </span>
-                  <span className={`text-[10px] font-medium normal-case ${isHighContrast ? (isDarkTheme ? 'text-white' : 'text-black') : 'text-stone-400'}`}>
-                    Sesuai nama undangan
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={rsvpName}
-                  onChange={(e) => setRsvpName(e.target.value)}
-                  placeholder="Contoh: Bpk. Bambang & Keluarga"
-                  className="w-full px-4 py-3.5 rounded-xl border-2 text-xs sm:text-sm font-semibold transition-all focus:outline-none shadow-sm"
-                  style={{
-                    backgroundColor: isHighContrast
-                      ? (isDarkTheme ? '#000000' : '#FFFFFF')
-                      : (isDarkTheme ? '#111827' : '#FFFFFF'),
-                    borderColor: isHighContrast
-                      ? (isDarkTheme ? '#FFFFFF' : '#000000')
-                      : (isDarkTheme ? '#374151' : '#D6D3D1'),
-                    color: isHighContrast
-                      ? (isDarkTheme ? '#FFFFFF' : '#000000')
-                      : (isDarkTheme ? '#F9FAFB' : '#1C1917'),
-                  }}
-                />
-              </div>
-
-              {/* Kehadiran Selector Cards */}
-              <div className="space-y-2 text-left">
-                <label
-                  className="text-xs font-extrabold uppercase tracking-wider flex items-center justify-between"
-                  style={{
-                    color: isHighContrast
-                      ? (isDarkTheme ? '#FFFFFF' : '#000000')
-                      : (isDarkTheme ? '#F3F4F6' : '#1C1917'),
-                  }}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span>Konfirmasi Kehadiran</span>
-                    <span className="text-amber-500 font-bold">*</span>
-                  </span>
-                  <span className={`text-[10px] font-medium normal-case ${isHighContrast ? (isDarkTheme ? 'text-white' : 'text-black') : 'text-stone-400'}`}>
-                    Pilih salah satu
-                  </span>
-                </label>
-                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-                  {[
-                    {
-                      id: 'attending',
-                      label: 'Hadir',
-                      icon: UserCheck,
-                      activeBg: '#059669',
-                      activeBorder: '#047857',
-                      activeColor: '#FFFFFF',
-                    },
-                    {
-                      id: 'not_attending',
-                      label: 'Tidak Hadir',
-                      icon: UserX,
-                      activeBg: '#E11D48',
-                      activeBorder: '#BE123C',
-                      activeColor: '#FFFFFF',
-                    },
-                    {
-                      id: 'uncertain',
-                      label: 'Masih Ragu',
-                      icon: HelpCircle,
-                      activeBg: '#D97706',
-                      activeBorder: '#B45309',
-                      activeColor: '#FFFFFF',
-                    },
-                  ].map((item) => {
-                    const Icon = item.icon;
-                    const isSelected = rsvpStatus === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setRsvpStatus(item.id as AttendanceStatus)}
-                        className={`relative py-3 px-2 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                          isSelected
-                            ? 'shadow-md scale-[1.02]'
-                            : 'hover:border-stone-400 active:scale-95'
-                        }`}
-                        style={{
-                          backgroundColor: isSelected
-                            ? isHighContrast
-                              ? isDarkTheme ? '#FFE600' : '#000000'
-                              : item.activeBg
-                            : isHighContrast
-                            ? isDarkTheme ? '#000000' : '#FFFFFF'
-                            : isDarkTheme
-                            ? '#1F2937'
-                            : '#F5F5F4',
-                          borderColor: isSelected
-                            ? isHighContrast
-                              ? isDarkTheme ? '#FFFFFF' : '#000000'
-                              : item.activeBorder
-                            : isHighContrast
-                            ? isDarkTheme ? '#FFFFFF' : '#000000'
-                            : isDarkTheme
-                            ? '#374151'
-                            : '#D6D3D1',
-                          color: isSelected
-                            ? isHighContrast
-                              ? isDarkTheme ? '#000000' : '#FFFFFF'
-                              : item.activeColor
-                            : isHighContrast
-                            ? isDarkTheme ? '#FFFFFF' : '#000000'
-                            : isDarkTheme
-                            ? '#E5E7EB'
-                            : '#292524',
-                        }}
-                      >
-                        {isSelected && (
-                          <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white text-stone-900 rounded-full flex items-center justify-center shadow-md">
-                            <Check className="w-2.5 h-2.5 stroke-[3]" />
-                          </span>
-                        )}
-                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                        <span className="text-[11px] sm:text-xs tracking-tight">{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Jumlah Tamu Selector (Shown only when attending) */}
-              {rsvpStatus === 'attending' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="space-y-1.5 text-left"
-                >
+                {/* Nama Lengkap Input */}
+                <div className="space-y-1.5 text-left">
                   <label
                     className="text-xs font-extrabold uppercase tracking-wider flex items-center justify-between"
                     style={{
@@ -2162,15 +2104,21 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                         : (isDarkTheme ? '#F3F4F6' : '#1C1917'),
                     }}
                   >
-                    <span>Jumlah Tamu yang Hadir</span>
+                    <span className="flex items-center gap-1.5">
+                      <span>Nama Lengkap</span>
+                      <span className="text-amber-500 font-bold">*</span>
+                    </span>
                     <span className={`text-[10px] font-medium normal-case ${isHighContrast ? (isDarkTheme ? 'text-white' : 'text-black') : 'text-stone-400'}`}>
-                      Termasuk pendamping
+                      Sesuai nama undangan
                     </span>
                   </label>
-                  <select
-                    value={rsvpCount}
-                    onChange={(e) => setRsvpCount(Number(e.target.value))}
-                    className="w-full px-4 py-3.5 rounded-xl border-2 text-xs sm:text-sm font-semibold transition-all focus:outline-none shadow-sm cursor-pointer"
+                  <input
+                    type="text"
+                    required
+                    value={rsvpName}
+                    onChange={(e) => setRsvpName(e.target.value)}
+                    placeholder="Contoh: Bpk. Bambang & Keluarga"
+                    className="w-full px-4 py-3.5 rounded-xl border-2 text-xs sm:text-sm font-semibold transition-all focus:outline-none shadow-sm"
                     style={{
                       backgroundColor: isHighContrast
                         ? (isDarkTheme ? '#000000' : '#FFFFFF')
@@ -2182,93 +2130,238 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                         ? (isDarkTheme ? '#FFFFFF' : '#000000')
                         : (isDarkTheme ? '#F9FAFB' : '#1C1917'),
                     }}
-                  >
-                    <option value={1}>1 Orang</option>
-                    <option value={2}>2 Orang</option>
-                    <option value={3}>3 Orang</option>
-                    <option value={4}>4 Orang atau Lebih</option>
-                  </select>
-                </motion.div>
-              )}
+                  />
+                </div>
 
-              {/* Ucapan Doa Input */}
-              <div className="space-y-1.5 text-left">
-                <label
-                  className="text-xs font-extrabold uppercase tracking-wider flex items-center justify-between"
+                {/* Kehadiran Selector Cards */}
+                <div className="space-y-2 text-left">
+                  <label
+                    className="text-xs font-extrabold uppercase tracking-wider flex items-center justify-between"
+                    style={{
+                      color: isHighContrast
+                        ? (isDarkTheme ? '#FFFFFF' : '#000000')
+                        : (isDarkTheme ? '#F3F4F6' : '#1C1917'),
+                    }}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span>Konfirmasi Kehadiran</span>
+                      <span className="text-amber-500 font-bold">*</span>
+                    </span>
+                    <span className={`text-[10px] font-medium normal-case ${isHighContrast ? (isDarkTheme ? 'text-white' : 'text-black') : 'text-stone-400'}`}>
+                      Pilih salah satu
+                    </span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                    {[
+                      {
+                        id: 'attending',
+                        label: 'Hadir',
+                        icon: UserCheck,
+                        activeBg: '#059669',
+                        activeBorder: '#047857',
+                        activeColor: '#FFFFFF',
+                      },
+                      {
+                        id: 'not_attending',
+                        label: 'Tidak Hadir',
+                        icon: UserX,
+                        activeBg: '#E11D48',
+                        activeBorder: '#BE123C',
+                        activeColor: '#FFFFFF',
+                      },
+                      {
+                        id: 'uncertain',
+                        label: 'Masih Ragu',
+                        icon: HelpCircle,
+                        activeBg: '#D97706',
+                        activeBorder: '#B45309',
+                        activeColor: '#FFFFFF',
+                      },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      const isSelected = rsvpStatus === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setRsvpStatus(item.id as AttendanceStatus)}
+                          className={`relative py-3 px-2 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            isSelected
+                              ? 'shadow-md scale-[1.02]'
+                              : 'hover:border-stone-400 active:scale-95'
+                          }`}
+                          style={{
+                            backgroundColor: isSelected
+                              ? isHighContrast
+                                ? isDarkTheme ? '#FFE600' : '#000000'
+                                : item.activeBg
+                              : isHighContrast
+                              ? isDarkTheme ? '#000000' : '#FFFFFF'
+                              : isDarkTheme
+                              ? '#1F2937'
+                              : '#F5F5F4',
+                            borderColor: isSelected
+                              ? isHighContrast
+                                ? isDarkTheme ? '#FFFFFF' : '#000000'
+                                : item.activeBorder
+                              : isHighContrast
+                              ? isDarkTheme ? '#FFFFFF' : '#000000'
+                              : isDarkTheme
+                              ? '#374151'
+                              : '#D6D3D1',
+                            color: isSelected
+                              ? isHighContrast
+                                ? isDarkTheme ? '#000000' : '#FFFFFF'
+                                : item.activeColor
+                              : isHighContrast
+                              ? isDarkTheme ? '#FFFFFF' : '#000000'
+                              : isDarkTheme
+                              ? '#E5E7EB'
+                              : '#292524',
+                          }}
+                        >
+                          {isSelected && (
+                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white text-stone-900 rounded-full flex items-center justify-center shadow-md">
+                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                            </span>
+                          )}
+                          <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                          <span className="text-[11px] sm:text-xs tracking-tight">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Jumlah Tamu Selector (Shown only when attending) */}
+                {rsvpStatus === 'attending' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-1.5 text-left"
+                  >
+                    <label
+                      className="text-xs font-extrabold uppercase tracking-wider flex items-center justify-between"
+                      style={{
+                        color: isHighContrast
+                          ? (isDarkTheme ? '#FFFFFF' : '#000000')
+                          : (isDarkTheme ? '#F3F4F6' : '#1C1917'),
+                      }}
+                    >
+                      <span>Jumlah Tamu yang Hadir</span>
+                      <span className={`text-[10px] font-medium normal-case ${isHighContrast ? (isDarkTheme ? 'text-white' : 'text-black') : 'text-stone-400'}`}>
+                        Termasuk pendamping
+                      </span>
+                    </label>
+                    <select
+                      value={rsvpCount}
+                      onChange={(e) => setRsvpCount(Number(e.target.value))}
+                      className="w-full px-4 py-3.5 rounded-xl border-2 text-xs sm:text-sm font-semibold transition-all focus:outline-none shadow-sm cursor-pointer"
+                      style={{
+                        backgroundColor: isHighContrast
+                          ? (isDarkTheme ? '#000000' : '#FFFFFF')
+                          : (isDarkTheme ? '#111827' : '#FFFFFF'),
+                        borderColor: isHighContrast
+                          ? (isDarkTheme ? '#FFFFFF' : '#000000')
+                          : (isDarkTheme ? '#374151' : '#D6D3D1'),
+                        color: isHighContrast
+                          ? (isDarkTheme ? '#FFFFFF' : '#000000')
+                          : (isDarkTheme ? '#F9FAFB' : '#1C1917'),
+                      }}
+                    >
+                      <option value={1}>1 Orang</option>
+                      <option value={2}>2 Orang</option>
+                      <option value={3}>3 Orang</option>
+                      <option value={4}>4 Orang atau Lebih</option>
+                    </select>
+                  </motion.div>
+                )}
+
+                {/* Ucapan Doa Input */}
+                <div className="space-y-1.5 text-left">
+                  <label
+                    className="text-xs font-extrabold uppercase tracking-wider flex items-center justify-between"
+                    style={{
+                      color: isHighContrast
+                        ? (isDarkTheme ? '#FFFFFF' : '#000000')
+                        : (isDarkTheme ? '#F3F4F6' : '#1C1917'),
+                    }}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span>Ucapan Selamat & Doa Restu</span>
+                      <span className="text-amber-500 font-bold">*</span>
+                    </span>
+                    <span className={`text-[10px] font-medium normal-case ${isHighContrast ? (isDarkTheme ? 'text-white' : 'text-black') : 'text-stone-400'}`}>
+                      Tampil di Buku Tamu
+                    </span>
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={rsvpMessage}
+                    onChange={(e) => setRsvpMessage(e.target.value)}
+                    placeholder="Tuliskan harapan dan doa tulus penuh berkah untuk kedua mempelai..."
+                    className="w-full px-4 py-3.5 rounded-xl border-2 text-xs sm:text-sm font-medium leading-relaxed transition-all focus:outline-none shadow-sm"
+                    style={{
+                      backgroundColor: isHighContrast
+                        ? (isDarkTheme ? '#000000' : '#FFFFFF')
+                        : (isDarkTheme ? '#111827' : '#FFFFFF'),
+                      borderColor: isHighContrast
+                        ? (isDarkTheme ? '#FFFFFF' : '#000000')
+                        : (isDarkTheme ? '#374151' : '#D6D3D1'),
+                      color: isHighContrast
+                        ? (isDarkTheme ? '#FFFFFF' : '#000000')
+                        : (isDarkTheme ? '#F9FAFB' : '#1C1917'),
+                    }}
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmittingRSVP}
+                  onClick={handleRipple}
+                  className={`relative overflow-hidden w-full py-4 px-6 rounded-2xl font-bold text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    isSubmittingRSVP ? 'opacity-70 cursor-not-allowed' : 'hover:brightness-105 active:scale-[0.98]'
+                  }`}
                   style={{
+                    background: isHighContrast
+                      ? (isDarkTheme ? 'linear-gradient(135deg, #FFE600 0%, #F59E0B 100%)' : 'linear-gradient(135deg, #000000 0%, #18181B 100%)')
+                      : themeVisuals.button.gradient,
                     color: isHighContrast
-                      ? (isDarkTheme ? '#FFFFFF' : '#000000')
-                      : (isDarkTheme ? '#F3F4F6' : '#1C1917'),
+                      ? (isDarkTheme ? '#000000' : '#FFFFFF')
+                      : themeVisuals.button.textColor,
+                    boxShadow: themeVisuals.button.shadow || '0 10px 25px rgba(0,0,0,0.2)',
+                    border: isHighContrast ? (isDarkTheme ? '2px solid #FFFFFF' : '2px solid #000000') : undefined,
                   }}
                 >
-                  <span className="flex items-center gap-1.5">
-                    <span>Ucapan Selamat & Doa Restu</span>
-                    <span className="text-amber-500 font-bold">*</span>
-                  </span>
-                  <span className={`text-[10px] font-medium normal-case ${isHighContrast ? (isDarkTheme ? 'text-white' : 'text-black') : 'text-stone-400'}`}>
-                    Tampil di Buku Tamu
-                  </span>
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={rsvpMessage}
-                  onChange={(e) => setRsvpMessage(e.target.value)}
-                  placeholder="Tuliskan harapan dan doa tulus penuh berkah untuk kedua mempelai..."
-                  className="w-full px-4 py-3.5 rounded-xl border-2 text-xs sm:text-sm font-medium leading-relaxed transition-all focus:outline-none shadow-sm"
-                  style={{
-                    backgroundColor: isHighContrast
-                      ? (isDarkTheme ? '#000000' : '#FFFFFF')
-                      : (isDarkTheme ? '#111827' : '#FFFFFF'),
-                    borderColor: isHighContrast
-                      ? (isDarkTheme ? '#FFFFFF' : '#000000')
-                      : (isDarkTheme ? '#374151' : '#D6D3D1'),
-                    color: isHighContrast
-                      ? (isDarkTheme ? '#FFFFFF' : '#000000')
-                      : (isDarkTheme ? '#F9FAFB' : '#1C1917'),
-                  }}
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmittingRSVP}
-                onClick={handleRipple}
-                className={`relative overflow-hidden w-full py-4 px-6 rounded-2xl font-bold text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  isSubmittingRSVP ? 'opacity-70 cursor-not-allowed' : 'hover:brightness-105 active:scale-[0.98]'
-                }`}
-                style={{
-                  background: isHighContrast
-                    ? (isDarkTheme ? 'linear-gradient(135deg, #FFE600 0%, #F59E0B 100%)' : 'linear-gradient(135deg, #000000 0%, #18181B 100%)')
-                    : themeVisuals.button.gradient,
-                  color: isHighContrast
-                    ? (isDarkTheme ? '#000000' : '#FFFFFF')
-                    : themeVisuals.button.textColor,
-                  boxShadow: themeVisuals.button.shadow || '0 10px 25px rgba(0,0,0,0.2)',
-                  border: isHighContrast ? (isDarkTheme ? '2px solid #FFFFFF' : '2px solid #000000') : undefined,
-                }}
-              >
-                {isSubmittingRSVP ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                    <span className="uppercase tracking-wider font-cinzel font-bold">Mengirimkan Doa...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 shrink-0" />
-                    <span className="uppercase tracking-wider font-cinzel font-bold">Kirim Konfirmasi & Doa</span>
-                  </>
-                )}
-              </button>
-            </motion.form>
+                  {isSubmittingRSVP ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      <span className="uppercase tracking-wider font-cinzel font-bold">Mengirimkan Doa...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 shrink-0" />
+                      <span className="uppercase tracking-wider font-cinzel font-bold">Kirim Konfirmasi & Doa</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </IntersectionSection>
 
             {/* Wishes Wall (Buku Tamu Card Feed) */}
             {(() => {
               const displayedWishes = deduplicateRSVPList(liveRsvpList);
               return (
                 <div className="space-y-3.5 pt-2">
-                  <div className="flex items-center justify-between px-1">
+                  <IntersectionSection
+                    as="div"
+                    slideDistance={18}
+                    delay={0.06}
+                    duration={0.7}
+                    className="flex items-center justify-between px-1"
+                  >
                     <div className="flex items-center gap-2">
                       <h4
                         className="text-xs sm:text-sm font-extrabold uppercase tracking-wider font-cinzel"
@@ -2307,7 +2400,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                     >
                       Buku Tamu Digital
                     </span>
-                  </div>
+                  </IntersectionSection>
 
                   <div className="max-h-96 overflow-y-auto space-y-3 custom-scrollbar pr-1">
                     {displayedWishes.length === 0 ? (
@@ -2329,12 +2422,13 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                       </div>
                     ) : (
                       displayedWishes.map((rsvp, rIndex) => (
-                        <motion.div
+                        <IntersectionSection
+                          as="div"
                           key={rsvp.id}
-                          initial={{ opacity: 0, y: 18 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 0.4, delay: (rIndex % 5) * 0.05 }}
+                          direction="up"
+                          slideDistance={22}
+                          delay={(rIndex % 4) * 0.05}
+                          duration={0.65}
                           className={`p-4 sm:p-5 ${themeVisuals.cardShapeClass} border-2 shadow-sm space-y-3 transition-all`}
                           style={{
                             backgroundColor: isHighContrast
@@ -2599,7 +2693,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                               </motion.div>
                             )}
                           </AnimatePresence>
-                        </motion.div>
+                        </IntersectionSection>
                       ))
                     )}
                   </div>
@@ -2619,7 +2713,12 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
         className="py-14 px-6 max-w-md mx-auto text-center space-y-8"
       >
         {invitation.protokolKesehatan && (
-          <div
+          <IntersectionSection
+            as="div"
+            direction="up"
+            slideDistance={24}
+            delay={0.08}
+            duration={0.75}
             className={`p-5 ${themeVisuals.cardShapeClass} border space-y-2 text-center ${isHighContrast ? 'border-2' : ''}`}
             style={{
               backgroundColor: isHighContrast ? (isDarkTheme ? '#0F0F14' : '#FFFFFF') : themeVisuals.palette.accentLight,
@@ -2636,10 +2735,17 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
             <p className={`text-[11px] leading-relaxed ${isHighContrast ? (isDarkTheme ? 'text-white font-medium' : 'text-black font-semibold') : 'text-stone-600 dark:text-stone-300 font-light'}`}>
               Demi kelancaran dan kenyamanan bersama, para tamu dimohon untuk senantiasa menjaga ketertiban serta kesehatan selama seluruh rangkaian acara berlangsung.
             </p>
-          </div>
+          </IntersectionSection>
         )}
 
-        <div className="space-y-3 pt-2">
+        <IntersectionSection
+          as="div"
+          direction="up"
+          slideDistance={28}
+          delay={0.14}
+          duration={0.8}
+          className="space-y-3 pt-2"
+        >
           {/* Top closing flourish */}
           <div className="flex items-center justify-center mb-2">
             <ThemeTopOrnament theme={themeVisuals} size="md" />
@@ -2660,16 +2766,23 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
             {invitation.mempelaiPria.namaPanggilan} & {invitation.mempelaiWanita.namaPanggilan}
           </h3>
           <p className={`text-[11px] ${isHighContrast ? (isDarkTheme ? 'text-white font-semibold' : 'text-black font-semibold') : 'text-stone-400 font-light'}`}>Beserta Seluruh Keluarga Besar</p>
-        </div>
+        </IntersectionSection>
 
         {/* Elegant Footer Watermark */}
-        <div className={`pt-8 border-t text-[10px] space-y-1 ${isHighContrast ? (isDarkTheme ? 'border-white text-white' : 'border-black text-black') : 'border-stone-200/60 dark:border-stone-800 text-stone-400'}`}>
+        <IntersectionSection
+          as="div"
+          direction="up"
+          slideDistance={16}
+          delay={0.2}
+          duration={0.7}
+          className={`pt-8 border-t text-[10px] space-y-1 ${isHighContrast ? (isDarkTheme ? 'border-white text-white' : 'border-black text-black') : 'border-stone-200/60 dark:border-stone-800 text-stone-400'}`}
+        >
           <div className={`inline-flex items-center justify-center gap-1.5 font-serif text-xs font-bold ${isHighContrast ? (isDarkTheme ? 'text-white' : 'text-black') : 'text-stone-600 dark:text-stone-300'}`}>
             <span className={`${isHighContrast ? (isDarkTheme ? 'text-white' : 'text-black') : 'text-stone-400'} font-sans text-[10px] font-normal`}>Dibuat oleh</span>
             <span>vhistetic</span>
             <span style={{ color: isHighContrast ? (isDarkTheme ? '#FFE600' : '#000000') : themeVisuals.palette.primary }}>Facth Printing</span>
           </div>
-        </div>
+        </IntersectionSection>
       </IntersectionSection>
         </motion.div>
       )}

@@ -1497,6 +1497,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
                             namaLengkap: e.target.value,
                           })
                         }
+                        placeholder="Nama lengkap mempelai pria & gelar"
                         className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                       />
                     </div>
@@ -1511,6 +1512,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
                             namaPanggilan: e.target.value,
                           })
                         }
+                        placeholder="Nama panggilan pria"
                         className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                       />
                     </div>
@@ -1527,6 +1529,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
                           orangTua: e.target.value,
                         })
                       }
+                      placeholder="Contoh: Putra dari Bpk. ... & Ibu ..."
                       className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
@@ -1592,6 +1595,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
                             namaLengkap: e.target.value,
                           })
                         }
+                        placeholder="Nama lengkap mempelai wanita & gelar"
                         className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                       />
                     </div>
@@ -1606,6 +1610,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
                             namaPanggilan: e.target.value,
                           })
                         }
+                        placeholder="Nama panggilan wanita"
                         className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                       />
                     </div>
@@ -1622,6 +1627,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
                           orangTua: e.target.value,
                         })
                       }
+                      placeholder="Contoh: Putri dari Bpk. ... & Ibu ..."
                       className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
@@ -1736,9 +1742,9 @@ export const EditorView: React.FC<EditorViewProps> = ({
                         waktuMulai: '13:00',
                         waktuSelesai: '17:00',
                         zonaWaktu: 'WIB',
-                        namaTempat: 'Gedung Serbaguna',
-                        alamat: 'Jl. Merdeka No. 1, Jakarta',
-                        linkGoogleMaps: 'https://maps.google.com/?q=Jakarta',
+                        namaTempat: '',
+                        alamat: '',
+                        linkGoogleMaps: '',
                       };
                       updateProp('events', [...invitation.events, newEvent]);
                     }}
@@ -1839,6 +1845,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
                           updated[idx].namaTempat = e.target.value;
                           updateProp('events', updated);
                         }}
+                        placeholder="Contoh: Gedung Pernikahan / Masjid / Kediaman Mempelai"
                         className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                       />
                     </div>
@@ -1853,6 +1860,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
                           updated[idx].alamat = e.target.value;
                           updateProp('events', updated);
                         }}
+                        placeholder="Contoh: Jl. Merdeka No. 10, Kota / Kabupaten"
                         className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                       />
                     </div>
@@ -3672,8 +3680,8 @@ export const EditorView: React.FC<EditorViewProps> = ({
                         const newBank: BankAccount = {
                           id: 'bank-' + Date.now(),
                           namaBank: 'BCA',
-                          nomorRekening: '1234567890',
-                          atasNama: invitation.mempelaiPria.namaPanggilan,
+                          nomorRekening: '',
+                          atasNama: invitation.mempelaiPria.namaPanggilan || '',
                           catatan: 'Amplop Digital',
                         };
                         updateProp('bankAccounts', [...invitation.bankAccounts, newBank]);
@@ -3734,6 +3742,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
                               updated[bIdx].nomorRekening = e.target.value;
                               updateProp('bankAccounts', updated);
                             }}
+                            placeholder="Nomor rekening / e-Wallet"
                             className="w-full mt-0.5 px-2.5 py-1.5 rounded-lg border border-stone-300 text-xs font-mono font-bold"
                           />
                         </div>
@@ -3747,6 +3756,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
                               updated[bIdx].atasNama = e.target.value;
                               updateProp('bankAccounts', updated);
                             }}
+                            placeholder="Nama pemilik rekening"
                             className="w-full mt-0.5 px-2.5 py-1.5 rounded-lg border border-stone-300 text-xs"
                           />
                         </div>

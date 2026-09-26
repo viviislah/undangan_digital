@@ -95,6 +95,46 @@ export const CustomerThemePreviewView: React.FC<CustomerThemePreviewViewProps> =
   const sampleInvitation = useMemo(() => {
     return createNewInvitationFromTemplate(template, {
       title: `The Wedding of Farhan & Nabila (${template.name})`,
+      mempelaiPria: {
+        namaLengkap: 'Farhan Maulana, S.T.',
+        namaPanggilan: 'Farhan',
+        orangTua: 'Putra tercinta Bpk. Ahmad Dahlan & Ibu Nurhayati',
+        anakKe: 'Putra Pertama',
+        instagram: 'farhan.maulana',
+        fotoUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80',
+      },
+      mempelaiWanita: {
+        namaLengkap: 'Nabila Safira, S.Psi.',
+        namaPanggilan: 'Nabila',
+        orangTua: 'Putri tercinta Bpk. Wahyu Hidayat & Ibu Sri Mulyani',
+        anakKe: 'Putri Kedua',
+        instagram: 'nabila.safira',
+        fotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+      },
+      events: [
+        {
+          id: 'evt-demo-1',
+          namaAcara: 'Akad Nikah',
+          tanggal: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          waktuMulai: '08:30',
+          waktuSelesai: '10:30',
+          zonaWaktu: 'WIB',
+          namaTempat: 'Gedung Serbaguna Puri Asri',
+          alamat: 'Jl. Merdeka No. 88, Menteng, Jakarta Pusat',
+          linkGoogleMaps: 'https://maps.google.com/?q=Jakarta',
+        },
+        {
+          id: 'evt-demo-2',
+          namaAcara: 'Resepsi Pernikahan',
+          tanggal: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          waktuMulai: '11:00',
+          waktuSelesai: '14:00',
+          zonaWaktu: 'WIB',
+          namaTempat: 'Grand Ballroom Puri Asri',
+          alamat: 'Jl. Merdeka No. 88, Menteng, Jakarta Pusat',
+          linkGoogleMaps: 'https://maps.google.com/?q=Jakarta',
+        },
+      ],
       isPublished: true,
     });
   }, [template]);

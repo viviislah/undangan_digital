@@ -30,6 +30,9 @@ interface DashboardViewProps {
   onEditInvitation: (invitation: InvitationData) => void;
   onPreviewInvitation: (invitation: InvitationData) => void;
   onDeleteInvitation: (id: string) => void;
+  onDeleteAllDrafts?: () => void;
+  onDeleteAllInvitations?: () => void;
+  onLoadSampleInvitations?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -38,14 +41,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onEditInvitation,
   onPreviewInvitation,
   onDeleteInvitation,
+  onDeleteAllDrafts,
+  onDeleteAllInvitations,
+  onLoadSampleInvitations,
 }) => {
   const [selectedForShare, setSelectedForShare] = useState<InvitationData | null>(null);
   const [selectedForQR, setSelectedForQR] = useState<InvitationData | null>(null);
   const [isShareThemeModalOpen, setIsShareThemeModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isConfirmDeleteAllDraftsOpen, setIsConfirmDeleteAllDraftsOpen] = useState(false);
+  const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
+  const [filterTab, setFilterTab] = useState<'all' | 'published' | 'draft'>('all');
   const [guestNames, setGuestNames] = useState<Record<string, string>>({});
   const [guestPhones, setGuestPhones] = useState<Record<string, string>>({});
+
+  const draftCount = invitations.filter((i) => !i.isPublished).length;
+  const publishedCount = invitations.filter((i) => i.isPublished).length;
+
+  const filteredInvitations = invitations.filter((inv) => {
+    if (filterTab === 'published') return inv.isPublished;
+    if (filterTab === 'draft') return !inv.isPublished;
+    return true;
+  });
+
+  const handleDeleteAllDraftsConfirm = () => {
+    if (onDeleteAllDrafts) {
+      onDeleteAllDrafts();
+    } else {
+      const drafts = invitations.filter((i) => !i.isPublished);
+      drafts.forEach((d) => onDeleteInvitation(d.id));
+    }
+    setIsConfirmDeleteAllDraftsOpen(false);
+  };
+
+  const handleDeleteAllConfirm = () => {
+    if (onDeleteAllInvitations) {
+      onDeleteAllInvitations();
+    } else {
+      invitations.forEach((inv) => onDeleteInvitation(inv.id));
+    }
+    setIsConfirmDeleteAllOpen(false);
+  };
 
   const handleCopyLink = (inv: InvitationData) => {
     const guestName = guestNames[inv.id]?.trim() || '';
@@ -146,44 +183,233 @@ Hormat kami yang berbahagia,
           </div>
         </motion.div>
 
-        {/* List of Invitations with Staggered Slide-in */}
+        {/* List of Invitations with Tabs & Actions */}
         <div className="space-y-4">
-          <motion.h2
-            initial={{ opacity: 0, x: -15 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-base font-bold text-stone-800"
-          >
-            Daftar Undangan Aktif
-          </motion.h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2">
+            <motion.h2
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-base font-bold text-stone-800"
+            >
+              Daftar Undangan
+            </motion.h2>
 
-          {invitations.length === 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Filter Tabs */}
+              <div className="inline-flex p-1 bg-stone-200/70 rounded-xl text-xs font-medium text-stone-600">
+                <button
+                  type="button"
+                  onClick={() => setFilterTab('all')}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    filterTab === 'all'
+                      ? 'bg-white text-stone-900 shadow-2xs font-semibold'
+                      : 'hover:text-stone-900'
+                  }`}
+                >
+                  Semua ({invitations.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterTab('published')}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    filterTab === 'published'
+                      ? 'bg-white text-emerald-800 shadow-2xs font-semibold'
+                      : 'hover:text-stone-900'
+                  }`}
+                >
+                  Terpublikasi ({publishedCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterTab('draft')}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    filterTab === 'draft'
+                      ? 'bg-white text-amber-800 shadow-2xs font-semibold'
+                      : 'hover:text-stone-900'
+                  }`}
+                >
+                  Draft ({draftCount})
+                </button>
+              </div>
+
+              {/* Hapus Semua Draft Button */}
+              {draftCount > 0 && (
+                <button
+                  type="button"
+                  id="btn-delete-all-drafts"
+                  onClick={() => setIsConfirmDeleteAllDraftsOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-all active:scale-95 shadow-2xs cursor-pointer"
+                  title="Hapus semua undangan berstatus draft"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Semua Draft ({draftCount})</span>
+                </button>
+              )}
+
+              {/* Hapus Semua yang Tersimpan Button */}
+              {invitations.length > 0 && (
+                <button
+                  type="button"
+                  id="btn-delete-all-invitations"
+                  onClick={() => setIsConfirmDeleteAllOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold transition-all active:scale-95 shadow-2xs cursor-pointer"
+                  title="Hapus semua undangan yang tersimpan di kelola undangan"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Semua yang Tersimpan ({invitations.length})</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Modal Konfirmasi Hapus Semua yang Tersimpan */}
+          {isConfirmDeleteAllOpen && (
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-stone-200 space-y-4"
+              >
+                <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div className="text-center space-y-1.5">
+                  <h3 className="text-lg font-bold text-stone-900">
+                    Hapus Semua yang Tersimpan?
+                  </h3>
+                  <p className="text-xs text-stone-600 leading-relaxed">
+                    Tindakan ini akan menghapus <strong>seluruh {invitations.length} undangan</strong> yang tersimpan di sistem secara permanen. Termasuk undangan draft maupun yang terpublikasi. Halaman Kelola Undangan akan dikosongkan.
+                  </p>
+                </div>
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmDeleteAllOpen(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    id="btn-confirm-delete-all-invitations"
+                    onClick={handleDeleteAllConfirm}
+                    className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    Ya, Hapus Semua
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          {/* Modal Konfirmasi Hapus Semua Draft */}
+          {isConfirmDeleteAllDraftsOpen && (
+            <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-stone-200 space-y-4"
+              >
+                <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <div className="text-center space-y-1.5">
+                  <h3 className="text-lg font-bold text-stone-900">
+                    Hapus Semua Draft?
+                  </h3>
+                  <p className="text-xs text-stone-600 leading-relaxed">
+                    Tindakan ini akan menghapus <strong>{draftCount} undangan berstatus draft</strong> secara permanen. Undangan yang sudah terpublikasi tidak akan terpengaruh.
+                  </p>
+                </div>
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmDeleteAllDraftsOpen(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    id="btn-confirm-delete-all-drafts"
+                    onClick={handleDeleteAllDraftsConfirm}
+                    className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    Ya, Hapus Semua Draft
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          {filteredInvitations.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="p-12 text-center bg-white rounded-2xl border border-stone-200 shadow-sm space-y-4"
+              className="p-12 text-center bg-white rounded-2xl border border-stone-200 shadow-sm space-y-5"
             >
-              <div className="w-14 h-14 mx-auto rounded-full bg-stone-100 flex items-center justify-center text-stone-400">
-                <Sparkles className="w-6 h-6" />
+              <div className="w-16 h-16 mx-auto rounded-full bg-stone-100 flex items-center justify-center text-stone-400">
+                <Sparkles className="w-7 h-7 text-amber-500" />
               </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold text-stone-800">Belum Ada Undangan</h3>
-                <p className="text-xs text-stone-500 max-w-sm mx-auto">
-                  Anda belum memiliki undangan. Mulai sekarang untuk membuat undangan pernikahan impian Anda.
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-bold text-stone-800">
+                  {filterTab === 'draft'
+                    ? 'Tidak Ada Draft Undangan'
+                    : filterTab === 'published'
+                    ? 'Belum Ada Undangan Terpublikasi'
+                    : 'Belum Ada Undangan yang Tersimpan'}
+                </h3>
+                <p className="text-xs sm:text-sm text-stone-500 max-w-md mx-auto leading-relaxed">
+                  {filterTab === 'draft'
+                    ? 'Semua draft telah dibersihkan atau semua undangan Anda saat ini sudah terpublikasi.'
+                    : filterTab === 'published'
+                    ? 'Belum ada undangan yang dipublikasikan. Silakan buat undangan baru atau publikasikan draft Anda.'
+                    : 'Semua undangan tersimpan telah bersih. Anda dapat mulai membuat undangan pernikahan baru dari nol atau memilih tema katalog.'}
                 </p>
               </div>
-              <button
-                onClick={onNewInvitation}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 text-white font-medium text-xs shadow-md"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Mulai Buat Undangan</span>
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                {filterTab === 'draft' ? (
+                  <button
+                    onClick={() => setFilterTab('all')}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold text-xs transition-colors cursor-pointer"
+                  >
+                    <span>Lihat Semua Undangan</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      id="btn-empty-create"
+                      onClick={onNewInvitation}
+                      className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-md shadow-amber-600/25 transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Buat Undangan Baru</span>
+                    </button>
+                    <button
+                      onClick={() => setIsShareThemeModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-stone-300 hover:bg-stone-50 text-stone-700 font-medium text-xs transition-colors cursor-pointer"
+                    >
+                      <MessageCircle className="w-4 h-4 text-emerald-600" />
+                      <span>Kirim Pilihan Tema</span>
+                    </button>
+                    {onLoadSampleInvitations && (
+                      <button
+                        onClick={onLoadSampleInvitations}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-3 rounded-xl border border-dashed border-stone-300 hover:border-stone-400 hover:bg-stone-50 text-stone-600 text-xs transition-colors cursor-pointer"
+                        title="Muat contoh template undangan ke daftar"
+                      >
+                        <span>Muat Contoh Undangan</span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             </motion.div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {invitations.map((inv, idx) => {
+              {filteredInvitations.map((inv, idx) => {
                 const primaryEvent = inv.events[0];
                 const eventDate = primaryEvent
                   ? new Date(primaryEvent.tanggal).toLocaleDateString('id-ID', {

@@ -35,26 +35,27 @@ export const WizardView: React.FC<WizardViewProps> = ({
 
   // Form State
   const category: InvitationCategory = 'wedding';
-  const [title, setTitle] = useState('The Wedding of Arya & Citra');
-  const [slug, setSlug] = useState('arya-citra');
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateDefinition>(
     initialTemplate || TEMPLATES[0]
   );
 
-  // Couple / Honoree Info
-  const [priaLengkap, setPriaLengkap] = useState('Arya Pratama, S.T.');
-  const [priaPanggilan, setPriaPanggilan] = useState('Arya');
-  const [priaOrangTua, setPriaOrangTua] = useState('Putra dari Bpk. Bambang & Ibu Retno');
+  // Couple / Honoree Info (Clean defaults, no dummy names)
+  const [priaLengkap, setPriaLengkap] = useState('');
+  const [priaPanggilan, setPriaPanggilan] = useState('');
+  const [priaOrangTua, setPriaOrangTua] = useState('');
 
-  const [wanitaLengkap, setWanitaLengkap] = useState('Citra Kirana, S.I.Kom.');
-  const [wanitaPanggilan, setWanitaPanggilan] = useState('Citra');
-  const [wanitaOrangTua, setWanitaOrangTua] = useState('Putri dari Bpk. Hendra & Ibu Siti');
+  const [wanitaLengkap, setWanitaLengkap] = useState('');
+  const [wanitaPanggilan, setWanitaPanggilan] = useState('');
+  const [wanitaOrangTua, setWanitaOrangTua] = useState('');
 
   // Event Info
-  const [tanggal, setTanggal] = useState('2025-11-20');
+  const defaultDateStr = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const [tanggal, setTanggal] = useState(defaultDateStr);
   const [waktu, setWaktu] = useState('09:00');
-  const [lokasi, setLokasi] = useState('Ballroom Grand Asri Jakarta');
-  const [alamat, setAlamat] = useState('Jl. Sudirman No. 100, Jakarta');
+  const [lokasi, setLokasi] = useState('');
+  const [alamat, setAlamat] = useState('');
 
   // Music Configuration State
   const [musicConfig, setMusicConfig] = useState<MusicConfig>({
@@ -72,47 +73,72 @@ export const WizardView: React.FC<WizardViewProps> = ({
       setCurrentStep((prev) => prev + 1);
     } else {
       romanticAudio.pause();
-      // Build final invitation object
+      // Build final invitation object with clean, user-provided values
+      const trimmedTitle = title.trim();
+      const defaultTitle =
+        priaPanggilan.trim() && wanitaPanggilan.trim()
+          ? `The Wedding of ${priaPanggilan.trim()} & ${wanitaPanggilan.trim()}`
+          : 'Undangan Pernikahan';
+
+      const trimmedSlug = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-|-$/g, '');
+      const defaultSlug =
+        priaPanggilan.trim() && wanitaPanggilan.trim()
+          ? `${priaPanggilan.trim().toLowerCase()}-${wanitaPanggilan.trim().toLowerCase()}`
+          : `undangan-${Date.now().toString(36)}`;
+
       const finalInvitation = createNewInvitationFromTemplate(selectedTemplate, {
-        title,
-        slug: slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-') || `undangan-${Date.now()}`,
+        title: trimmedTitle || defaultTitle,
+        slug: trimmedSlug || defaultSlug,
         category,
         mempelaiPria: {
-          namaLengkap: priaLengkap,
-          namaPanggilan: priaPanggilan,
-          orangTua: priaOrangTua,
-          fotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
+          namaLengkap: priaLengkap.trim(),
+          namaPanggilan: priaPanggilan.trim(),
+          orangTua: priaOrangTua.trim(),
+          anakKe: '',
+          instagram: '',
+          fotoUrl: '',
         },
         mempelaiWanita: {
-          namaLengkap: wanitaLengkap,
-          namaPanggilan: wanitaPanggilan,
-          orangTua: wanitaOrangTua,
-          fotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+          namaLengkap: wanitaLengkap.trim(),
+          namaPanggilan: wanitaPanggilan.trim(),
+          orangTua: wanitaOrangTua.trim(),
+          anakKe: '',
+          instagram: '',
+          fotoUrl: '',
         },
         events: [
           {
             id: 'evt-wizard-1',
             namaAcara: 'Akad Nikah / Pemberkatan',
-            tanggal,
-            waktuMulai: waktu,
-            waktuSelesai: '11:00',
+            tanggal: tanggal || defaultDateStr,
+            waktuMulai: waktu || '08:00',
+            waktuSelesai: '10:00',
             zonaWaktu: 'WIB',
-            namaTempat: lokasi,
-            alamat,
-            linkGoogleMaps: 'https://maps.google.com/?q=Jakarta',
+            namaTempat: lokasi.trim(),
+            alamat: alamat.trim(),
+            linkGoogleMaps: '',
           },
           {
             id: 'evt-wizard-2',
             namaAcara: 'Resepsi Pernikahan',
-            tanggal,
-            waktuMulai: '11:30',
-            waktuSelesai: '15:00',
+            tanggal: tanggal || defaultDateStr,
+            waktuMulai: '11:00',
+            waktuSelesai: '14:00',
             zonaWaktu: 'WIB',
-            namaTempat: lokasi,
-            alamat,
-            linkGoogleMaps: 'https://maps.google.com/?q=Jakarta',
+            namaTempat: lokasi.trim(),
+            alamat: alamat.trim(),
+            linkGoogleMaps: '',
           },
         ],
+        loveStories: [],
+        gallery: [],
+        bankAccounts: [],
+        giftAddress: {
+          penerima: '',
+          nomorTelepon: '',
+          alamatLengkap: '',
+          catatanKurir: '',
+        },
         music: musicConfig,
       });
 
@@ -183,8 +209,19 @@ export const WizardView: React.FC<WizardViewProps> = ({
                     <input
                       type="text"
                       value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Contoh: The Wedding of Arya & Citra"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTitle(val);
+                        if (!slug || slug.startsWith('undangan-') || slug === title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) {
+                          const auto = val
+                            .toLowerCase()
+                            .replace(/^the\s+wedding\s+of\s+/i, '')
+                            .replace(/[^a-z0-9]+/g, '-')
+                            .replace(/^-|-$/g, '');
+                          setSlug(auto);
+                        }
+                      }}
+                      placeholder="Contoh: The Wedding of ... / Undangan Pernikahan"
                       className="w-full px-4 py-3 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
@@ -198,8 +235,8 @@ export const WizardView: React.FC<WizardViewProps> = ({
                   <input
                     type="text"
                     value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    placeholder="arya-citra"
+                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="nama-mempelai"
                     className="flex-1 py-3 px-2 bg-transparent text-sm font-mono text-stone-900 focus:outline-none"
                   />
                 </div>
@@ -307,6 +344,7 @@ export const WizardView: React.FC<WizardViewProps> = ({
                       type="text"
                       value={priaLengkap}
                       onChange={(e) => setPriaLengkap(e.target.value)}
+                      placeholder="Nama lengkap mempelai pria & gelar"
                       className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
@@ -316,6 +354,7 @@ export const WizardView: React.FC<WizardViewProps> = ({
                       type="text"
                       value={priaPanggilan}
                       onChange={(e) => setPriaPanggilan(e.target.value)}
+                      placeholder="Nama panggilan pria"
                       className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
@@ -326,7 +365,7 @@ export const WizardView: React.FC<WizardViewProps> = ({
                     type="text"
                     value={priaOrangTua}
                     onChange={(e) => setPriaOrangTua(e.target.value)}
-                    placeholder="Contoh: Putra dari Bpk... & Ibu..."
+                    placeholder="Contoh: Putra dari Bpk. ... & Ibu ..."
                     className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   />
                 </div>
@@ -344,6 +383,7 @@ export const WizardView: React.FC<WizardViewProps> = ({
                       type="text"
                       value={wanitaLengkap}
                       onChange={(e) => setWanitaLengkap(e.target.value)}
+                      placeholder="Nama lengkap mempelai wanita & gelar"
                       className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
@@ -353,6 +393,7 @@ export const WizardView: React.FC<WizardViewProps> = ({
                       type="text"
                       value={wanitaPanggilan}
                       onChange={(e) => setWanitaPanggilan(e.target.value)}
+                      placeholder="Nama panggilan wanita"
                       className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                     />
                   </div>
@@ -363,7 +404,7 @@ export const WizardView: React.FC<WizardViewProps> = ({
                     type="text"
                     value={wanitaOrangTua}
                     onChange={(e) => setWanitaOrangTua(e.target.value)}
-                    placeholder="Contoh: Putri dari Bpk... & Ibu..."
+                    placeholder="Contoh: Putri dari Bpk. ... & Ibu ..."
                     className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   />
                 </div>
@@ -400,6 +441,7 @@ export const WizardView: React.FC<WizardViewProps> = ({
                     type="text"
                     value={lokasi}
                     onChange={(e) => setLokasi(e.target.value)}
+                    placeholder="Contoh: Gedung Pernikahan / Masjid / Kediaman Mempelai"
                     className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   />
                 </div>
@@ -409,6 +451,7 @@ export const WizardView: React.FC<WizardViewProps> = ({
                     type="text"
                     value={alamat}
                     onChange={(e) => setAlamat(e.target.value)}
+                    placeholder="Contoh: Jl. Merdeka No. 10, Kota / Kabupaten"
                     className="w-full mt-1 px-3 py-2 rounded-lg border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
                   />
                 </div>

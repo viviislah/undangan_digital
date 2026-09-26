@@ -7,6 +7,8 @@ import {
   getInvitationBySlugOrIdFromDb,
   upsertInvitationInDb,
   deleteInvitationFromDb,
+  deleteAllDraftsFromDb,
+  deleteAllInvitationsFromDb,
   incrementInvitationViewsInDb,
   addRSVPToDb,
   getRSVPsFromDb,
@@ -501,6 +503,33 @@ app.post('/api/invitations', optionalAuth, async (req: AuthRequest, res) => {
   }
 });
 
+// API: Delete all invitations (both drafts and published)
+app.delete('/api/invitations', optionalAuth, async (_req: AuthRequest, res) => {
+  try {
+    const deletedCount = await deleteAllInvitationsFromDb();
+    console.log(`Deleted all ${deletedCount} invitations from database`);
+  } catch (err) {
+    console.warn('Database delete all invitations error:', err);
+  }
+  saveInvitations([]);
+  res.json({ success: true, message: 'Semua undangan yang tersimpan berhasil dihapus' });
+});
+
+// API: Delete all drafts
+app.delete('/api/invitations-drafts', optionalAuth, async (_req: AuthRequest, res) => {
+  try {
+    const deletedCount = await deleteAllDraftsFromDb();
+    console.log(`Deleted ${deletedCount} drafts from database`);
+  } catch (err) {
+    console.warn('Database delete drafts error:', err);
+  }
+  let invitations = loadInvitations();
+  const prevCount = invitations.length;
+  invitations = invitations.filter((i: any) => i.isPublished !== false);
+  saveInvitations(invitations);
+  res.json({ success: true, count: prevCount - invitations.length, message: 'Semua draft berhasil dihapus' });
+});
+
 // API: Delete invitation
 app.delete('/api/invitations/:id', optionalAuth, async (req: AuthRequest, res) => {
   const { id } = req.params;
@@ -558,8 +587,7 @@ async function seedInitialDatabaseIfEmpty() {
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';
 
-  // Seed database in background without blocking server boot
-  seedInitialDatabaseIfEmpty();
+  // Note: Automatic seeding disabled so cleared invitations remain clean and empty
 
   if (!isProd) {
     // Vite Dev Server middleware

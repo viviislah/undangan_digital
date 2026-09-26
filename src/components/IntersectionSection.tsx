@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { useIntersectionObserver, UseIntersectionObserverOptions } from '../hooks/useIntersectionObserver';
 
 interface IntersectionSectionProps extends UseIntersectionObserverOptions {
-  as?: 'section' | 'div' | 'article';
+  as?: 'section' | 'div' | 'article' | 'header' | 'footer';
   id?: string;
   className?: string;
   style?: React.CSSProperties;
@@ -13,6 +13,7 @@ interface IntersectionSectionProps extends UseIntersectionObserverOptions {
   duration?: number; // In seconds
   direction?: 'up' | 'down' | 'left' | 'right' | 'zoom' | 'none';
   staggerChildren?: boolean;
+  withBlur?: boolean;
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
 }
 
@@ -23,12 +24,13 @@ export const IntersectionSection: React.FC<IntersectionSectionProps> = ({
   style = {},
   children,
   delay = 0,
-  slideDistance = 38,
-  duration = 0.88,
+  slideDistance = 28,
+  duration = 0.8,
   direction = 'up',
-  threshold = 0.12,
-  rootMargin = '0px 0px -40px 0px',
+  threshold = 0.06,
+  rootMargin = '0px 0px -25px 0px',
   triggerOnce = true,
+  withBlur = false,
   onClick,
 }) => {
   const { elementRef, isIntersecting } = useIntersectionObserver<HTMLElement>({
@@ -38,35 +40,45 @@ export const IntersectionSection: React.FC<IntersectionSectionProps> = ({
   });
 
   const getInitialValues = () => {
+    const blur = withBlur ? 'blur(4px)' : 'none';
     switch (direction) {
       case 'left':
-        return { opacity: 0, x: -slideDistance, y: 0, scale: 0.98, filter: 'blur(4px)' };
+        return { opacity: 0, x: -slideDistance, y: 0, scale: 0.99, filter: blur };
       case 'right':
-        return { opacity: 0, x: slideDistance, y: 0, scale: 0.98, filter: 'blur(4px)' };
+        return { opacity: 0, x: slideDistance, y: 0, scale: 0.99, filter: blur };
       case 'down':
-        return { opacity: 0, x: 0, y: -slideDistance, scale: 0.98, filter: 'blur(4px)' };
+        return { opacity: 0, x: 0, y: -slideDistance, scale: 0.99, filter: blur };
       case 'zoom':
-        return { opacity: 0, x: 0, y: 0, scale: 0.93, filter: 'blur(4px)' };
+        return { opacity: 0, x: 0, y: 0, scale: 0.95, filter: blur };
       case 'none':
         return { opacity: 0, x: 0, y: 0, scale: 1, filter: 'none' };
       case 'up':
       default:
-        return { opacity: 0, x: 0, y: slideDistance, scale: 0.98, filter: 'blur(4px)' };
+        return { opacity: 0, x: 0, y: slideDistance, scale: 1, filter: blur };
     }
   };
 
   const initialValues = getInitialValues();
   const animateValues = isIntersecting
-    ? { opacity: 1, x: 0, y: 0, scale: 1, filter: 'blur(0px)' }
+    ? { opacity: 1, x: 0, y: 0, scale: 1, filter: 'none' }
     : initialValues;
 
   const transitionConfig = {
     duration,
     delay,
-    ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
   };
 
-  const MotionComponent = as === 'div' ? motion.div : as === 'article' ? motion.article : motion.section;
+  const MotionComponent =
+    as === 'div'
+      ? motion.div
+      : as === 'article'
+      ? motion.article
+      : as === 'header'
+      ? motion.header
+      : as === 'footer'
+      ? motion.footer
+      : motion.section;
 
   return (
     <MotionComponent
@@ -77,7 +89,10 @@ export const IntersectionSection: React.FC<IntersectionSectionProps> = ({
       transition={transitionConfig}
       onClick={onClick}
       className={`intersection-observed-section relative ${className}`}
-      style={style}
+      style={{
+        ...style,
+        willChange: isIntersecting ? 'auto' : 'opacity, transform',
+      }}
     >
       {typeof children === 'function' ? children({ isIntersecting }) : children}
     </MotionComponent>

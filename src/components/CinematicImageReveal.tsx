@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Image as ImageIcon } from 'lucide-react';
 import { resolveExternalMediaUrl } from '../services/imageService';
 import { FALLBACK_WEDDING_IMG } from '../data/weddingAssets';
+import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
 
 interface CinematicImageRevealProps {
   src: string;
@@ -41,6 +42,12 @@ export const CinematicImageReveal: React.FC<CinematicImageRevealProps> = ({
   const [currentSrc, setCurrentSrc] = useState(() => resolveExternalMediaUrl(src) || resolvedFallback);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+
+  const { elementRef, isIntersecting } = useIntersectionObserver<HTMLDivElement>({
+    threshold: 0.05,
+    rootMargin: '0px 0px -15px 0px',
+    triggerOnce: true,
+  });
 
   useEffect(() => {
     const nextSrc = resolveExternalMediaUrl(src) || resolvedFallback;
@@ -101,6 +108,7 @@ export const CinematicImageReveal: React.FC<CinematicImageRevealProps> = ({
 
   return (
     <div
+      ref={elementRef}
       onClick={onClick}
       className={`group relative overflow-hidden select-none ${shapeStyles} ${aspectRatioClass} ${className}`}
       style={{
@@ -119,8 +127,7 @@ export const CinematicImageReveal: React.FC<CinematicImageRevealProps> = ({
       {/* Motion Picture Container with Smooth Cubic-Bezier Physics */}
       <motion.div
         initial={variants.initial}
-        whileInView={variants.animate}
-        viewport={{ once: true, margin: '-20px' }}
+        animate={isIntersecting ? variants.animate : variants.initial}
         transition={{
           duration,
           delay,
@@ -146,19 +153,18 @@ export const CinematicImageReveal: React.FC<CinematicImageRevealProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none opacity-60 group-hover:opacity-40 transition-opacity" />
 
         {/* Cinematic Glaze / Sunlight Gleam Sweep passing over image on reveal */}
-        {showGleam && (
+        {showGleam && isIntersecting && (
           <motion.div
             initial={{ x: '-120%', opacity: 0 }}
-            whileInView={{
+            animate={{
               x: '150%',
               opacity: [0, 0.8, 0],
-              transition: {
-                delay: delay + 0.35,
-                duration: 1.3,
-                ease: 'easeInOut',
-              },
             }}
-            viewport={{ once: true }}
+            transition={{
+              delay: delay + 0.35,
+              duration: 1.3,
+              ease: 'easeInOut',
+            }}
             className="absolute inset-0 w-2/3 h-full pointer-events-none skew-x-[-22deg] bg-gradient-to-r from-transparent via-white/35 to-transparent z-10"
             style={{
               mixBlendMode: 'overlay',

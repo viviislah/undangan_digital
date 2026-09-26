@@ -12,8 +12,8 @@ export interface UseIntersectionObserverOptions {
  * as well as inside scrollable containers (e.g. PhoneSimulator).
  */
 export function useIntersectionObserver<T extends HTMLElement = HTMLElement>({
-  threshold = 0.12,
-  rootMargin = '0px 0px -40px 0px',
+  threshold = 0.05,
+  rootMargin = '0px 0px -15px 0px',
   triggerOnce = true,
 }: UseIntersectionObserverOptions = {}) {
   const [isIntersecting, setIsIntersecting] = useState(false);
@@ -31,18 +31,19 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>({
 
     // Auto-detect closest scrollable ancestor container (e.g. #phone-screen-scroll-container in PhoneSimulator)
     let rootContainer: Element | null = null;
-    let parent = el.parentElement;
-    while (parent && parent !== document.body && parent !== document.documentElement) {
-      if (parent.id === 'phone-screen-scroll-container') {
-        rootContainer = parent;
-        break;
+    const phoneContainer = document.getElementById('phone-screen-scroll-container');
+    if (phoneContainer && phoneContainer.contains(el)) {
+      rootContainer = phoneContainer;
+    } else {
+      let parent = el.parentElement;
+      while (parent && parent !== document.body && parent !== document.documentElement) {
+        const style = window.getComputedStyle(parent);
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          rootContainer = parent;
+          break;
+        }
+        parent = parent.parentElement;
       }
-      const style = window.getComputedStyle(parent);
-      if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-        rootContainer = parent;
-        break;
-      }
-      parent = parent.parentElement;
     }
 
     const observer = new IntersectionObserver(

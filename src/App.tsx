@@ -16,6 +16,9 @@ import {
   getStoredInvitations,
   saveInvitationToStorage,
   deleteInvitationFromStorage,
+  deleteAllDraftsFromStorage,
+  deleteAllInvitationsFromStorage,
+  loadSampleInvitationsToStorage,
   findInvitationBySlugOrId,
   fetchInvitationBySlugOrIdAsync,
   syncAllInvitationsFromServer,
@@ -171,6 +174,21 @@ export default function App() {
   const handleDeleteInvitation = (id: string) => {
     const remaining = deleteInvitationFromStorage(id);
     setInvitations(remaining);
+  };
+
+  const handleDeleteAllDrafts = () => {
+    const remaining = deleteAllDraftsFromStorage();
+    setInvitations(remaining);
+  };
+
+  const handleDeleteAllInvitations = () => {
+    const remaining = deleteAllInvitationsFromStorage();
+    setInvitations(remaining);
+  };
+
+  const handleLoadSampleInvitations = () => {
+    const samples = loadSampleInvitationsToStorage();
+    setInvitations(samples);
   };
 
   const handlePreviewFullscreen = (inv: InvitationData) => {
@@ -345,6 +363,9 @@ export default function App() {
                 onEditInvitation={handleEditInvitation}
                 onPreviewInvitation={handlePreviewFullscreen}
                 onDeleteInvitation={handleDeleteInvitation}
+                onDeleteAllDrafts={handleDeleteAllDrafts}
+                onDeleteAllInvitations={handleDeleteAllInvitations}
+                onLoadSampleInvitations={handleLoadSampleInvitations}
               />
             </motion.div>
           )}
