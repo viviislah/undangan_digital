@@ -2,6 +2,19 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  getAllInvitationsFromDb,
+  getInvitationBySlugOrIdFromDb,
+  upsertInvitationInDb,
+  deleteInvitationFromDb,
+  incrementInvitationViewsInDb,
+  addRSVPToDb,
+  getRSVPsFromDb,
+  addRSVPReplyInDb,
+} from './src/db/invitations.ts';
+import { SAMPLE_INVITATION_1, SAMPLE_INVITATION_2 } from './src/services/storageService.ts';
+import { getOrCreateUser } from './src/db/users.ts';
+import { optionalAuth, requireAuth, AuthRequest } from './src/middleware/auth.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,7 +90,7 @@ function processImageBase64(base64Url: string, prefix: string, id: string): stri
 function processInvitationUploads(invitation: any): any {
   if (!invitation) return invitation;
 
-  // 1. Process custom audio file uploads (Save base64 data to a real server MP3/WAV file)
+  // 1. Process custom audio file uploads
   if (invitation.music && invitation.music.audioUrl) {
     const audioUrl = invitation.music.audioUrl;
     if (audioUrl.startsWith('data:audio/')) {
@@ -89,10 +102,10 @@ function processInvitationUploads(invitation: any): any {
           const extension = contentType.split('/')[1] || 'mp3';
           const fileName = `audio_${invitation.id}.${extension}`;
           const filePath = path.join(UPLOADS_DIR, fileName);
-          
+
           fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
           console.log(`Saved custom audio upload to ${filePath}`);
-          
+
           invitation.music.audioUrl = `/uploads/${fileName}`;
         }
       } catch (err) {
@@ -101,105 +114,88 @@ function processInvitationUploads(invitation: any): any {
     }
   }
 
-  // 2. Process all uploaded base64 photos to keep invitation lightweight and shareable
-  invitation.coverPhotoUrl = processImageBase64(invitation.coverPhotoUrl, 'cover', invitation.id);
-
-  if (invitation.mempelaiPria) {
-    invitation.mempelaiPria.fotoUrl = processImageBase64(invitation.mempelaiPria.fotoUrl, 'pria', invitation.id);
-  }
-  if (invitation.mempelaiWanita) {
-    invitation.mempelaiWanita.fotoUrl = processImageBase64(invitation.mempelaiWanita.fotoUrl, 'wanita', invitation.id);
+  // 2. Process coverPhotoUrl
+  if (invitation.coverPhotoUrl && invitation.coverPhotoUrl.startsWith('data:image/')) {
+    invitation.coverPhotoUrl = processImageBase64(invitation.coverPhotoUrl, 'cover', invitation.id);
   }
 
+  // 3. Process Mempelai Pria photo
+  if (invitation.mempelaiPria && invitation.mempelaiPria.fotoUrl && invitation.mempelaiPria.fotoUrl.startsWith('data:image/')) {
+    invitation.mempelaiPria.fotoUrl = processImageBase64(invitation.mempelaiPria.fotoUrl, 'groom', invitation.id);
+  }
+
+  // 4. Process Mempelai Wanita photo
+  if (invitation.mempelaiWanita && invitation.mempelaiWanita.fotoUrl && invitation.mempelaiWanita.fotoUrl.startsWith('data:image/')) {
+    invitation.mempelaiWanita.fotoUrl = processImageBase64(invitation.mempelaiWanita.fotoUrl, 'bride', invitation.id);
+  }
+
+  // 5. Process love stories photos
   if (Array.isArray(invitation.loveStories)) {
-    invitation.loveStories = invitation.loveStories.map((story: any) => ({
-      ...story,
-      fotoUrl: processImageBase64(story.fotoUrl, 'story', story.id || invitation.id),
-    }));
+    invitation.loveStories.forEach((story: any, idx: number) => {
+      if (story.fotoUrl && story.fotoUrl.startsWith('data:image/')) {
+        story.fotoUrl = processImageBase64(story.fotoUrl, `story_${idx}`, invitation.id);
+      }
+    });
   }
 
+  // 6. Process gallery photos
   if (Array.isArray(invitation.gallery)) {
-    invitation.gallery = invitation.gallery.map((item: any) => ({
-      ...item,
-      url: processImageBase64(item.url, 'gallery', item.id || invitation.id),
-    }));
+    invitation.gallery.forEach((photo: any, idx: number) => {
+      if (photo.url && photo.url.startsWith('data:image/')) {
+        photo.url = processImageBase64(photo.url, `gallery_${idx}`, invitation.id);
+      }
+    });
+  }
+
+  // 7. Process gift digital account QR codes
+  if (invitation.gift && Array.isArray(invitation.gift.rekening)) {
+    invitation.gift.rekening.forEach((rek: any, idx: number) => {
+      if (rek.qrCodeUrl && rek.qrCodeUrl.startsWith('data:image/')) {
+        rek.qrCodeUrl = processImageBase64(rek.qrCodeUrl, `qris_${idx}`, invitation.id);
+      }
+    });
   }
 
   return invitation;
 }
 
-// Allow large payloads for custom audio / photos
+// Middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// CORS for cross-origin access
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
-
-// Serve static uploaded files and public images so they are accessible on any device globally
+// Serve uploaded audio and images
 app.use('/uploads', express.static(UPLOADS_DIR));
-app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
-app.use(express.static(path.join(__dirname, 'public')));
 
-// API: Proxy Audio for Google Drive & external URLs with Full Range (HTTP 206) Support for iOS Safari
+// Audio streaming proxy to bypass CORS restrictions
 app.get('/api/proxy-audio', async (req, res) => {
+  const url = req.query.url as string;
+  if (!url) {
+    return res.status(400).send('URL query parameter is required');
+  }
+
   try {
-    let targetUrl = req.query.url as string;
-    const fileId = req.query.id as string;
-
-    if (fileId) {
-      targetUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
-    }
-
-    if (!targetUrl) {
-      return res.status(400).send('Missing url or id parameter');
-    }
-
-    const headers: Record<string, string> = {
-      'User-Agent':
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    const rangeHeader = req.headers.range;
+    const fetchHeaders: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      Accept: '*/*',
     };
 
-    if (req.headers.range) {
-      headers['Range'] = req.headers.range;
+    if (rangeHeader) {
+      fetchHeaders.Range = rangeHeader;
     }
 
-    // Follow redirects and handle Google Drive confirmation cookies
-    let response = await fetch(targetUrl, { headers });
-
-    // Check if Google Drive returned a confirmation warning page
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('text/html') && fileId) {
-      const htmlText = await response.text();
-      const confirmMatch = htmlText.match(/confirm=([0-9A-Za-z_-]+)/);
-      const confirmToken = confirmMatch ? confirmMatch[1] : 't';
-      const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=${confirmToken}`;
-
-      response = await fetch(downloadUrl, { headers });
-    }
+    const response = await fetch(url, { headers: fetchHeaders });
 
     if (!response.ok && response.status !== 206) {
-      return res.status(response.status).send(`Failed to stream audio (${response.status})`);
+      return res.status(response.status).send(`Failed to fetch remote audio: ${response.statusText}`);
     }
 
-    let outContentType = response.headers.get('content-type') || 'audio/mpeg';
-    if (!outContentType.startsWith('audio/') && !outContentType.startsWith('video/')) {
-      outContentType = 'audio/mpeg';
-    }
-
-    res.setHeader('Content-Type', outContentType);
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const contentType = response.headers.get('content-type') || 'audio/mpeg';
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'public, max-age=86400');
 
-    // Forward range-specific headers
     if (response.status === 206) {
       res.status(206);
       if (response.headers.get('content-range')) {
@@ -235,27 +231,7 @@ app.get('/api/proxy-audio', async (req, res) => {
   }
 });
 
-// API: Get all invitations
-app.get('/api/invitations', (_req, res) => {
-  const invitations = loadInvitations();
-  res.json(invitations);
-});
-
-// API: Get invitation by slug or id
-app.get('/api/invitations/:slugOrId', (req, res) => {
-  const { slugOrId } = req.params;
-  const invitations = loadInvitations();
-  const found = invitations.find((i: any) => i.slug === slugOrId || i.id === slugOrId);
-  if (!found) {
-    return res.status(404).json({ error: 'Invitation not found' });
-  }
-  res.json({
-    ...found,
-    rsvpList: deduplicateRsvps(found.rsvpList || []),
-  });
-});
-
-// Helper to deduplicate RSVP records by ID and duplicate submissions within 30s
+// Helper to deduplicate RSVP records
 function deduplicateRsvps(list: any[]): any[] {
   if (!Array.isArray(list)) return [];
   const result: any[] = [];
@@ -264,7 +240,7 @@ function deduplicateRsvps(list: any[]): any[] {
     const isDuplicate = result.some((existing) => {
       if (existing.id && item.id && existing.id === item.id) return true;
       const sameName = String(existing.nama || '').trim().toLowerCase() === String(item.nama || '').trim().toLowerCase();
-      const sameMessage = String(existing.pesanDoa || '').trim().toLowerCase() === String(item.pesanDoa || '').trim().toLowerCase();
+      const sameMessage = String(existing.pesanDoa || existing.ucapan || '').trim().toLowerCase() === String(item.pesanDoa || item.ucapan || '').trim().toLowerCase();
       if (sameName && sameMessage) {
         const timeDiff = Math.abs(new Date(existing.createdAt).getTime() - new Date(item.createdAt).getTime());
         if (isNaN(timeDiff) || timeDiff < 30000) {
@@ -280,9 +256,68 @@ function deduplicateRsvps(list: any[]): any[] {
   return result;
 }
 
-// API: Get RSVP list for an invitation
-app.get('/api/invitations/:slugOrId/rsvp', (req, res) => {
+// API: Get all invitations (Cloud SQL PostgreSQL + local sync)
+app.get('/api/invitations', async (_req, res) => {
+  try {
+    const dbList = await getAllInvitationsFromDb();
+    if (dbList.length > 0) {
+      return res.json(dbList);
+    }
+  } catch (err) {
+    console.warn('Database query fallback to file:', err);
+  }
+  const invitations = loadInvitations();
+  res.json(invitations);
+});
+
+// API: Get invitation by slug or id
+app.get('/api/invitations/:slugOrId', async (req, res) => {
   const { slugOrId } = req.params;
+  try {
+    const foundDb = await getInvitationBySlugOrIdFromDb(slugOrId);
+    if (foundDb) {
+      return res.json(foundDb);
+    }
+  } catch (err) {
+    console.warn('Database query fallback for invitation:', err);
+  }
+
+  const invitations = loadInvitations();
+  const found = invitations.find((i: any) => i.slug === slugOrId || i.id === slugOrId);
+  if (!found) {
+    return res.status(404).json({ error: 'Invitation not found' });
+  }
+  res.json({
+    ...found,
+    rsvpList: deduplicateRsvps(found.rsvpList || []),
+  });
+});
+
+// API: Increment invitation view count
+app.post('/api/invitations/:slugOrId/view', async (req, res) => {
+  const { slugOrId } = req.params;
+  try {
+    const views = await incrementInvitationViewsInDb(slugOrId);
+    return res.json({ success: true, viewsCount: views });
+  } catch (err) {
+    console.warn('Failed to increment views in database:', err);
+    return res.json({ success: true });
+  }
+});
+
+// API: Get RSVP list for an invitation
+app.get('/api/invitations/:slugOrId/rsvp', async (req, res) => {
+  const { slugOrId } = req.params;
+  try {
+    const foundDb = await getInvitationBySlugOrIdFromDb(slugOrId);
+    if (foundDb) {
+      const dbRsvps = await getRSVPsFromDb(foundDb.id);
+      return res.json({ success: true, rsvpList: dbRsvps });
+    }
+  } catch (err) {
+    console.warn('Database RSVP query error:', err);
+  }
+
   const invitations = loadInvitations();
   const found = invitations.find((i: any) => i.slug === slugOrId || i.id === slugOrId);
   if (!found) {
@@ -292,8 +327,8 @@ app.get('/api/invitations/:slugOrId/rsvp', (req, res) => {
   res.json({ success: true, rsvpList: cleanList });
 });
 
-// API: Submit RSVP confirmation & wishes from any device globally
-app.post('/api/invitations/:slugOrId/rsvp', (req, res) => {
+// API: Submit RSVP confirmation & wishes
+app.post('/api/invitations/:slugOrId/rsvp', async (req, res) => {
   const { slugOrId } = req.params;
   const { nama, status, jumlahTamu, pesanDoa } = req.body;
 
@@ -301,6 +336,40 @@ app.post('/api/invitations/:slugOrId/rsvp', (req, res) => {
     return res.status(400).json({ error: 'Nama dan ucapan doa wajib diisi' });
   }
 
+  const trimmedName = String(nama).trim();
+  const trimmedPesan = String(pesanDoa).trim();
+
+  // Try PostgreSQL first
+  try {
+    const foundDb = await getInvitationBySlugOrIdFromDb(slugOrId);
+    if (foundDb) {
+      const mappedStatus: any =
+        status === 'not-attending' || status === 'not_attending'
+          ? 'not_attending'
+          : status === 'tentative' || status === 'uncertain'
+          ? 'uncertain'
+          : 'attending';
+      const guestCount = mappedStatus === 'not_attending' ? 0 : Number(jumlahTamu) || 1;
+      const newRsvpRecord = {
+        id: 'rsvp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+        invitationId: foundDb.id,
+        nama: trimmedName,
+        status: mappedStatus,
+        jumlahTamu: guestCount,
+        pesanDoa: trimmedPesan,
+        createdAt: new Date().toISOString(),
+        replies: [],
+      };
+
+      const saved = await addRSVPToDb(foundDb.id, newRsvpRecord);
+      const list = await getRSVPsFromDb(foundDb.id);
+      return res.json({ success: true, rsvp: saved, rsvpList: list });
+    }
+  } catch (err) {
+    console.error('Database RSVP error, falling back to local file:', err);
+  }
+
+  // Fallback to local JSON storage
   const invitations = loadInvitations();
   const targetIdx = invitations.findIndex((i: any) => i.slug === slugOrId || i.id === slugOrId);
 
@@ -309,27 +378,6 @@ app.post('/api/invitations/:slugOrId/rsvp', (req, res) => {
   }
 
   const target = invitations[targetIdx];
-  const trimmedName = String(nama).trim();
-  const trimmedPesan = String(pesanDoa).trim();
-
-  // Deduplication check: if a message with the exact same name and prayer was submitted recently,
-  // return existing record to prevent duplicate entries
-  const existingRecent = (target.rsvpList || []).find((r: any) => {
-    if (
-      String(r.nama || '').trim().toLowerCase() === trimmedName.toLowerCase() &&
-      String(r.pesanDoa || '').trim().toLowerCase() === trimmedPesan.toLowerCase()
-    ) {
-      const timeDiff = Date.now() - new Date(r.createdAt).getTime();
-      return isNaN(timeDiff) || timeDiff < 30000;
-    }
-    return false;
-  });
-
-  if (existingRecent) {
-    const cleanList = deduplicateRsvps(target.rsvpList || []);
-    return res.json({ success: true, rsvp: existingRecent, rsvpList: cleanList, duplicatePrevented: true });
-  }
-
   const newRsvp = {
     id: 'rsvp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
     invitationId: target.id,
@@ -341,17 +389,6 @@ app.post('/api/invitations/:slugOrId/rsvp', (req, res) => {
   };
 
   target.rsvpList = deduplicateRsvps([newRsvp, ...(target.rsvpList || [])]);
-
-  // Also update guest status if name matches
-  if (Array.isArray(target.guests)) {
-    const matchedGuest = target.guests.find(
-      (g: any) => g.nama && g.nama.toLowerCase().trim() === trimmedName.toLowerCase()
-    );
-    if (matchedGuest) {
-      matchedGuest.statusUndangan = 'opened';
-    }
-  }
-
   target.updatedAt = new Date().toISOString();
   invitations[targetIdx] = target;
   saveInvitations(invitations);
@@ -360,50 +397,16 @@ app.post('/api/invitations/:slugOrId/rsvp', (req, res) => {
 });
 
 // API: Reply to an RSVP wish / prayer
-app.post('/api/invitations/:slugOrId/rsvp/:rsvpId/reply', (req, res) => {
-  const { slugOrId, rsvpId } = req.params;
-  const { nama, pesan, isHost } = req.body;
+app.post('/api/invitations/:slugOrId/rsvp/:rsvpId/reply', optionalAuth, async (_req: AuthRequest, res) => {
+  const { slugOrId, rsvpId } = _req.params;
+  const { nama, pesan, isHost } = _req.body;
 
   if (!nama || !pesan) {
     return res.status(400).json({ error: 'Nama dan balasan wajib diisi' });
   }
 
-  const invitations = loadInvitations();
-  const targetIdx = invitations.findIndex((i: any) => i.slug === slugOrId || i.id === slugOrId);
-
-  if (targetIdx === -1) {
-    return res.status(404).json({ error: 'Invitation not found' });
-  }
-
-  const target = invitations[targetIdx];
-  if (!Array.isArray(target.rsvpList)) {
-    target.rsvpList = [];
-  }
-
-  const rsvp = target.rsvpList.find((r: any) => r.id === rsvpId);
-  if (!rsvp) {
-    return res.status(404).json({ error: 'RSVP wish not found' });
-  }
-
   const trimmedReplyName = String(nama).trim();
   const trimmedReplyMsg = String(pesan).trim();
-
-  // Deduplicate replies within 20 seconds
-  const existingReply = (rsvp.replies || []).find((rep: any) => {
-    if (
-      String(rep.nama || '').trim().toLowerCase() === trimmedReplyName.toLowerCase() &&
-      String(rep.pesan || '').trim().toLowerCase() === trimmedReplyMsg.toLowerCase()
-    ) {
-      const timeDiff = Date.now() - new Date(rep.createdAt).getTime();
-      return isNaN(timeDiff) || timeDiff < 20000;
-    }
-    return false;
-  });
-
-  if (existingReply) {
-    return res.json({ success: true, reply: existingReply, rsvpList: target.rsvpList, duplicatePrevented: true });
-  }
-
   const newReply = {
     id: 'reply-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
     rsvpId,
@@ -413,16 +416,39 @@ app.post('/api/invitations/:slugOrId/rsvp/:rsvpId/reply', (req, res) => {
     createdAt: new Date().toISOString(),
   };
 
-  rsvp.replies = [...(rsvp.replies || []), newReply];
+  try {
+    const foundDb = await getInvitationBySlugOrIdFromDb(slugOrId);
+    if (foundDb) {
+      await addRSVPReplyInDb(foundDb.id, rsvpId, newReply);
+      const list = await getRSVPsFromDb(foundDb.id);
+      return res.json({ success: true, reply: newReply, rsvpList: list });
+    }
+  } catch (err) {
+    console.warn('Database RSVP reply error:', err);
+  }
 
+  // Fallback
+  const invitations = loadInvitations();
+  const targetIdx = invitations.findIndex((i: any) => i.slug === slugOrId || i.id === slugOrId);
+
+  if (targetIdx === -1) {
+    return res.status(404).json({ error: 'Invitation not found' });
+  }
+
+  const target = invitations[targetIdx];
+  const rsvp = (target.rsvpList || []).find((r: any) => r.id === rsvpId);
+  if (!rsvp) {
+    return res.status(404).json({ error: 'RSVP wish not found' });
+  }
+
+  rsvp.replies = [...(rsvp.replies || []), newReply];
   target.updatedAt = new Date().toISOString();
-  invitations[targetIdx] = target;
   saveInvitations(invitations);
 
   res.json({ success: true, reply: newReply, rsvpList: target.rsvpList });
 });
 
-// API: Direct Image Upload (Used when user picks or compresses an image in editor)
+// API: Direct Image Upload
 app.post('/api/upload-image', (req, res) => {
   const { image, prefix, id } = req.body;
   if (!image) {
@@ -437,8 +463,8 @@ app.post('/api/upload-image', (req, res) => {
   return res.status(500).json({ error: 'Failed to process image' });
 });
 
-// API: Save or update invitation
-app.post('/api/invitations', (req, res) => {
+// API: Save or update invitation (Stores directly in PostgreSQL + local backup)
+app.post('/api/invitations', optionalAuth, async (req: AuthRequest, res) => {
   let newInv = req.body;
   if (!newInv || !newInv.id) {
     return res.status(400).json({ error: 'Invalid invitation data' });
@@ -446,34 +472,94 @@ app.post('/api/invitations', (req, res) => {
 
   // Process and convert base64 audio and images into real server-side files
   newInv = processInvitationUploads(newInv);
-
-  const invitations = loadInvitations();
-  const existingIdx = invitations.findIndex((i: any) => i.id === newInv.id || i.slug === newInv.slug);
-
   newInv.updatedAt = new Date().toISOString();
 
-  if (existingIdx >= 0) {
-    invitations[existingIdx] = newInv;
-  } else {
-    invitations.unshift(newInv);
+  // Save to Cloud SQL PostgreSQL
+  try {
+    const saved = await upsertInvitationInDb(newInv, req.user?.uid);
+    // Also sync to local file for backup
+    const invitations = loadInvitations();
+    const existingIdx = invitations.findIndex((i: any) => i.id === newInv.id || i.slug === newInv.slug);
+    if (existingIdx >= 0) {
+      invitations[existingIdx] = newInv;
+    } else {
+      invitations.unshift(newInv);
+    }
+    saveInvitations(invitations);
+    return res.json({ success: true, invitation: saved });
+  } catch (err) {
+    console.error('Database write error, saving locally:', err);
+    const invitations = loadInvitations();
+    const existingIdx = invitations.findIndex((i: any) => i.id === newInv.id || i.slug === newInv.slug);
+    if (existingIdx >= 0) {
+      invitations[existingIdx] = newInv;
+    } else {
+      invitations.unshift(newInv);
+    }
+    saveInvitations(invitations);
+    return res.json({ success: true, invitation: newInv });
   }
-
-  saveInvitations(invitations);
-  res.json({ success: true, invitation: newInv });
 });
 
 // API: Delete invitation
-app.delete('/api/invitations/:id', (req, res) => {
+app.delete('/api/invitations/:id', optionalAuth, async (req: AuthRequest, res) => {
   const { id } = req.params;
+  try {
+    await deleteInvitationFromDb(id);
+  } catch (err) {
+    console.warn('Database delete error:', err);
+  }
   let invitations = loadInvitations();
   invitations = invitations.filter((i: any) => i.id !== id && i.slug !== id);
   saveInvitations(invitations);
   res.json({ success: true });
 });
 
+// API: Synchronize user profile into PostgreSQL users table
+app.post('/api/auth/sync-user', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ error: 'User token required' });
+    }
+    const userRecord = await getOrCreateUser(req.user.uid, req.user.email || '');
+    res.json({ success: true, user: userRecord });
+  } catch (err: any) {
+    console.error('Error syncing user to database:', err);
+    res.status(500).json({ error: 'Failed to sync user' });
+  }
+});
+
+// Auto-seed initial invitations from invitations.json and samples into Cloud SQL PostgreSQL if missing
+async function seedInitialDatabaseIfEmpty() {
+  try {
+    const list = await getAllInvitationsFromDb();
+    const existingIds = new Set(list.map((i) => i.id));
+    const local = loadInvitations();
+    const allToSeed = [SAMPLE_INVITATION_1, SAMPLE_INVITATION_2, ...local];
+    let seededCount = 0;
+
+    for (const item of allToSeed) {
+      if (!existingIds.has(item.id)) {
+        await upsertInvitationInDb(item);
+        existingIds.add(item.id);
+        seededCount++;
+      }
+    }
+
+    if (seededCount > 0) {
+      console.log(`Seeded ${seededCount} invitations into Cloud SQL PostgreSQL.`);
+    }
+  } catch (err) {
+    console.warn('Database seeding deferred:', err);
+  }
+}
+
 // Setup Vite or Static File Serving
 async function startServer() {
   const isProd = process.env.NODE_ENV === 'production';
+
+  // Seed database in background without blocking server boot
+  seedInitialDatabaseIfEmpty();
 
   if (!isProd) {
     // Vite Dev Server middleware
