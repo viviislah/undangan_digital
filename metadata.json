@@ -1,0 +1,6 @@
+{
+  "name": "Vhistetic Undangan Digital",
+  "description": "Aplikasi web modern pembuat undangan digital elegan, responsif, dan mudah digunakan dengan live preview, RSVP, dan alunan musik romantis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-script {
+    font-family: 'Great Vibes', cursive, serif;
+  }
+  .font-brush {
+    font-family: 'Alex Brush', cursive, serif;
+  }
+  .font-serif-display {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+  .font-cinzel {
+    font-family: 'Cinzel', 'Playfair Display', serif;
+  }
+  .font-sans-clean {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+  .font-italiana {
+    font-family: 'Italiana', 'Cinzel', serif;
+  }
+  .font-parisienne {
+    font-family: 'Parisienne', 'Great Vibes', cursive, serif;
+  }
+  .font-garamond {
+    font-family: 'Cormorant Garamond', 'Playfair Display', serif;
+  }
+  .font-sacramento {
+    font-family: 'Sacramento', cursive, serif;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+/* Custom subtle scrollbar for mobile simulator and panels */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
+}
+
+/* Button click ripple wave */
+.ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: rippleAnimation 0.65s linear;
+  background-color: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+}
+
+@keyframes rippleAnimation {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 8s linear infinite;
+}
+
+.countdown-container {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.countdown-container .countdown-card {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ==========================================================================
+   ACCESSIBILITY: GLOBAL HIGH-CONTRAST THEME (MAXIMUM LEGIBILITY)
+   ========================================================================== */
+
+.vhistetic-high-contrast {
+  --hc-active: 1;
+}
+
+/* Light Theme High Contrast: Enforce solid pure blacks on light backgrounds */
+.vhistetic-high-contrast.vhistetic-hc-light {
+  color: #000000 !important;
+}
+
+.vhistetic-high-contrast.vhistetic-hc-light p,
+.vhistetic-high-contrast.vhistetic-hc-light .hc-readable-text,
+.vhistetic-high-contrast.vhistetic-hc-light blockquote {
+  color: #000000 !important;
+  font-weight: 500;
+}
+
+.vhistetic-high-contrast.vhistetic-hc-light h1,
+.vhistetic-high-contrast.vhistetic-hc-light h2,
+.vhistetic-high-contrast.vhistetic-hc-light h3,
+.vhistetic-high-contrast.vhistetic-hc-light h4,
+.vhistetic-high-contrast.vhistetic-hc-light h5,
+.vhistetic-high-contrast.vhistetic-hc-light h6 {
+  color: #000000 !important;
+  font-weight: 700;
+}
+
+.vhistetic-high-contrast.vhistetic-hc-light .text-stone-700,
+.vhistetic-high-contrast.vhistetic-hc-light .text-stone-600,
+.vhistetic-high-contrast.vhistetic-hc-light .text-stone-500,
+.vhistetic-high-contrast.vhistetic-hc-light .text-stone-400,
+.vhistetic-high-contrast.vhistetic-hc-light .text-stone-300,
+.vhistetic-high-contrast.vhistetic-hc-light .text-gray-600,
+.vhistetic-high-contrast.vhistetic-hc-light .text-gray-500,
+.vhistetic-high-contrast.vhistetic-hc-light .text-gray-400 {
+  color: #000000 !important;
+}
+
+/* Dark Theme High Contrast: Enforce solid pure whites on dark backgrounds */
+.vhistetic-high-contrast.vhistetic-hc-dark {
+  color: #FFFFFF !important;
+}
+
+.vhistetic-high-contrast.vhistetic-hc-dark p,
+.vhistetic-high-contrast.vhistetic-hc-dark .hc-readable-text,
+.vhistetic-high-contrast.vhistetic-hc-dark blockquote {
+  color: #FFFFFF !important;
+  font-weight: 500;
+}
+
+.vhistetic-high-contrast.vhistetic-hc-dark h1,
+.vhistetic-high-contrast.vhistetic-hc-dark h2,
+.vhistetic-high-contrast.vhistetic-hc-dark h3,
+.vhistetic-high-contrast.vhistetic-hc-dark h4,
+.vhistetic-high-contrast.vhistetic-hc-dark h5,
+.vhistetic-high-contrast.vhistetic-hc-dark h6 {
+  color: #FFFFFF !important;
+  font-weight: 700;
+}
+
+.vhistetic-high-contrast.vhistetic-hc-dark .text-stone-500,
+.vhistetic-high-contrast.vhistetic-hc-dark .text-stone-400,
+.vhistetic-high-contrast.vhistetic-hc-dark .text-stone-300,
+.vhistetic-high-contrast.vhistetic-hc-dark .text-stone-200,
+.vhistetic-high-contrast.vhistetic-hc-dark .text-gray-400,
+.vhistetic-high-contrast.vhistetic-hc-dark .text-gray-300 {
+  color: #FFFFFF !important;
+}
+

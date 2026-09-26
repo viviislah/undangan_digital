@@ -1,0 +1,117 @@
+[
+  {
+    "id": "inv-mudx2vr4-xo5",
+    "slug": "arya-citra",
+    "title": "The Wedding of Arya & Citra",
+    "category": "wedding",
+    "isPublished": true,
+    "createdAt": "2026-09-23T09:45:02.272Z",
+    "updatedAt": "2026-09-23T09:45:02.900Z",
+    "viewsCount": 1,
+    "greetingTitle": "Walimatul 'Ursy",
+    "quoteText": "Maha Suci Allah yang telah menciptakan manusia berpasang-pasangan. Semoga Allah memberkahi ikatan suci ini hingga surga-Nya.",
+    "quoteSource": "Doa Restu Pernikahan",
+    "heroSubtitle": "Tanpa mengurangi rasa hormat, kami bermaksud mengundang Bapak/Ibu/Saudara/i untuk hadir dalam perayaan pernikahan kami:",
+    "coverPhotoUrl": "/images/Salinan-foto-profil.png",
+    "mempelaiPria": {
+      "namaLengkap": "Arya Pratama, S.T.",
+      "namaPanggilan": "Arya",
+      "orangTua": "Putra dari Bpk. Bambang & Ibu Retno",
+      "fotoUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80"
+    },
+    "mempelaiWanita": {
+      "namaLengkap": "Citra Kirana, S.I.Kom.",
+      "namaPanggilan": "Citra",
+      "orangTua": "Putri dari Bpk. Hendra & Ibu Siti",
+      "fotoUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80"
+    },
+    "events": [
+      {
+        "id": "evt-wizard-1",
+        "namaAcara": "Akad Nikah / Pemberkatan",
+        "tanggal": "2025-11-20",
+        "waktuMulai": "09:00",
+        "waktuSelesai": "11:00",
+        "zonaWaktu": "WIB",
+        "namaTempat": "Ballroom Grand Asri Jakarta",
+        "alamat": "Jl. Sudirman No. 100, Jakarta",
+        "linkGoogleMaps": "https://maps.google.com/?q=Jakarta"
+      },
+      {
+        "id": "evt-wizard-2",
+        "namaAcara": "Resepsi Pernikahan",
+        "tanggal": "2025-11-20",
+        "waktuMulai": "11:30",
+        "waktuSelesai": "15:00",
+        "zonaWaktu": "WIB",
+        "namaTempat": "Ballroom Grand Asri Jakarta",
+        "alamat": "Jl. Sudirman No. 100, Jakarta",
+        "linkGoogleMaps": "https://maps.google.com/?q=Jakarta"
+      }
+    ],
+    "loveStories": [
+      {
+        "id": "story-1",
+        "tahun": "2021",
+        "judul": "Awal Bertemu",
+        "cerita": "Pertemuan pertama yang tak disengaja di perpustakaan kota."
+      },
+      {
+        "id": "story-2",
+        "tahun": "2023",
+        "judul": "Komitmen Bersama",
+        "cerita": "Memutuskan untuk saling mendampingi dan melangkah bersama."
+      }
+    ],
+    "gallery": [
+      {
+        "id": "g-1",
+        "url": "/images/Salinan-foto-profil.png",
+        "caption": "Momen Bahagia Bersama"
+      },
+      {
+        "id": "g-2",
+        "url": "/images/Salinan-foto-profil.png",
+        "caption": "Menuju Hari Bahagia"
+      }
+    ],
+    "bankAccounts": [
+      {
+        "id": "b-1",
+        "namaBank": "BCA",
+        "nomorRekening": "1234567890",
+        "atasNama": "Farhan Maulana",
+        "catatan": "Rekening Mempelai"
+      }
+    ],
+    "giftAddress": {
+      "penerima": "Farhan & Nabila",
+      "nomorTelepon": "0812-0000-1111",
+      "alamatLengkap": "Jl. Melati Indah No. 12, Jakarta",
+      "catatanKurir": "Mohon hubungi sebelum mengantar kado."
+    },
+    "rsvpList": [],
+    "theme": {
+      "templateId": "elegant-gold",
+      "primaryColor": "#C5A059",
+      "secondaryColor": "#E6CA85",
+      "bgColor": "#FAF7F0",
+      "textColor": "#3D342C",
+      "fontDisplay": "font-cinzel",
+      "fontBody": "font-sans-clean",
+      "borderStyle": "classic-gold",
+      "ornamentStyle": "leaves",
+      "backgroundPattern": "subtle-lines"
+    },
+    "music": {
+      "enabled": true,
+      "autoPlay": true,
+      "presetId": "romantic-harp",
+      "title": "Romantic Acoustic Harp & Chime",
+      "artist": "Harmoni Akustik Studio",
+      "audioUrl": ""
+    },
+    "pesanPenutup": "Merupakan suatu kebahagiaan dan kehormatan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu.",
+    "protokolKesehatan": true
+  }
+]
