@@ -267,6 +267,25 @@ export const getStoredInvitations = (): InvitationData[] => {
           updatedInv.coverPhotoUrl = '/images/Salinan-foto-profil.png';
           changed = true;
         }
+        // Auto-heal stale /uploads/ URLs from localhost development that do not exist on static hosting
+        if (updatedInv.coverPhotoUrl && (updatedInv.coverPhotoUrl.startsWith('/uploads/') || updatedInv.coverPhotoUrl.startsWith('uploads/'))) {
+          updatedInv.coverPhotoUrl = '/images/Salinan-foto-profil.png';
+          changed = true;
+        }
+        if (updatedInv.mempelaiPria?.fotoUrl && (updatedInv.mempelaiPria.fotoUrl.startsWith('/uploads/') || updatedInv.mempelaiPria.fotoUrl.startsWith('uploads/'))) {
+          updatedInv.mempelaiPria = {
+            ...updatedInv.mempelaiPria,
+            fotoUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80',
+          };
+          changed = true;
+        }
+        if (updatedInv.mempelaiWanita?.fotoUrl && (updatedInv.mempelaiWanita.fotoUrl.startsWith('/uploads/') || updatedInv.mempelaiWanita.fotoUrl.startsWith('uploads/'))) {
+          updatedInv.mempelaiWanita = {
+            ...updatedInv.mempelaiWanita,
+            fotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+          };
+          changed = true;
+        }
         if (inv.id === 'inv-gold-001' || inv.id === 'inv-black-002') {
           updatedInv.rsvpList = [];
         }

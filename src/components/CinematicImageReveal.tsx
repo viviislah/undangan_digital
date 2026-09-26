@@ -6,6 +6,7 @@ import { FALLBACK_WEDDING_IMG } from '../data/weddingAssets';
 
 interface CinematicImageRevealProps {
   src: string;
+  fallbackSrc?: string;
   alt?: string;
   className?: string;
   imageClassName?: string;
@@ -22,6 +23,7 @@ interface CinematicImageRevealProps {
 
 export const CinematicImageReveal: React.FC<CinematicImageRevealProps> = ({
   src,
+  fallbackSrc,
   alt = 'Foto Undangan',
   className = '',
   imageClassName = '',
@@ -35,20 +37,21 @@ export const CinematicImageReveal: React.FC<CinematicImageRevealProps> = ({
   onClick,
   children,
 }) => {
-  const [currentSrc, setCurrentSrc] = useState(() => resolveExternalMediaUrl(src) || FALLBACK_WEDDING_IMG);
+  const resolvedFallback = fallbackSrc ? resolveExternalMediaUrl(fallbackSrc) : FALLBACK_WEDDING_IMG;
+  const [currentSrc, setCurrentSrc] = useState(() => resolveExternalMediaUrl(src) || resolvedFallback);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    const nextSrc = resolveExternalMediaUrl(src) || FALLBACK_WEDDING_IMG;
+    const nextSrc = resolveExternalMediaUrl(src) || resolvedFallback;
     setCurrentSrc(nextSrc);
     setIsLoaded(false);
     setHasError(false);
-  }, [src]);
+  }, [src, resolvedFallback]);
 
   const handleImageError = () => {
-    if (currentSrc !== FALLBACK_WEDDING_IMG) {
-      setCurrentSrc(FALLBACK_WEDDING_IMG);
+    if (currentSrc !== resolvedFallback) {
+      setCurrentSrc(resolvedFallback);
     } else {
       setHasError(true);
       setIsLoaded(true);

@@ -23,6 +23,8 @@ import { TemplateDefinition } from '../types/invitation';
 import { getThemeVisuals } from '../data/weddingAssets';
 import { getThemeOpeningAnimation } from '../data/themeAnimations';
 import { PhoneSimulator } from '../components/PhoneSimulator';
+import { resolveExternalMediaUrl } from '../services/imageService';
+import { FALLBACK_WEDDING_IMG } from '../data/weddingAssets';
 import { InvitationPublicView } from '../components/InvitationPublicView';
 import { createNewInvitationFromTemplate } from '../services/storageService';
 import { FacthLogo } from '../components/FacthLogo';
@@ -163,9 +165,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className="bg-stone-900 rounded-[44px] p-2.5 shadow-2xl border-4 border-stone-800">
                   <div className="rounded-[36px] overflow-hidden bg-stone-950 aspect-[9/18] relative shadow-inner">
                     <img
-                      src="/images/Salinan-foto-profil.png"
+                      src={resolveExternalMediaUrl('/images/Salinan-foto-profil.png')}
                       alt="Preview Undangan"
                       className="w-full h-full object-cover opacity-85"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = FALLBACK_WEDDING_IMG;
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-transparent flex flex-col justify-end p-6 text-center text-white">
                       <span className="text-[10px] uppercase tracking-widest text-amber-300 font-semibold mb-1">

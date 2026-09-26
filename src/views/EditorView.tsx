@@ -783,7 +783,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
   // Preset photos for quick picking
   const PRESET_COVERS = [
-    '/images/Salinan-foto-profil.png',
+    resolveExternalMediaUrl('/images/Salinan-foto-profil.png'),
     'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80',
     'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1200&q=80',
     'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=1200&q=80',

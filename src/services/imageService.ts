@@ -17,7 +17,9 @@ export const compressImageFile = async (
   file: File,
   options: CompressOptions = {}
 ): Promise<string> => {
-  const { maxDimension = 1600, quality = 0.82 } = options;
+  // Optimized 1200px max dimension & 0.78 quality provides razor-sharp display
+  // while keeping image payload ~75KB so multiple photos easily fit within browser storage quotas
+  const { maxDimension = 1200, quality = 0.78 } = options;
 
   return new Promise((resolve, reject) => {
     // If it's not an image, reject
@@ -127,6 +129,7 @@ export const uploadImageToServer = async (
 
 /**
  * Normalizes external media links (Google Drive, Dropbox, relative URLs)
+ * and resolves base paths for GitHub Pages sub-directories.
  */
 export const resolveExternalMediaUrl = (url?: string): string => {
   if (!url) return '';
@@ -146,6 +149,28 @@ export const resolveExternalMediaUrl = (url?: string): string => {
     if (match && match[1]) {
       return `https://drive.google.com/uc?export=download&id=${match[1]}`;
     }
+  }
+
+  // Data URLs or external absolute HTTP/HTTPS links
+  if (trimmed.startsWith('data:') || trimmed.startsWith('blob:') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  // Stale dev server uploaded URLs (e.g. /uploads/photo-xxx.jpg)
+  // When running on GitHub Pages (static host), local Express /uploads/ is not available.
+  // Fallback to a high-quality wedding photo so the invitation never shows broken/missing images.
+  if (trimmed.startsWith('/uploads/') || trimmed.startsWith('uploads/')) {
+    return 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80';
+  }
+
+  // Relative paths from public/ (e.g. /images/..., /facth-logo...)
+  // On GitHub Pages (hosted at https://username.github.io/repo-name/), a leading slash '/'
+  // causes the browser to request from https://username.github.io/images/... (domain root),
+  // which 404s. Prepends Vite's base path ('./') to ensure proper resolution.
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+    const base = import.meta.env.BASE_URL || './';
+    const cleanBase = base.endsWith('/') ? base : `${base}/`;
+    return `${cleanBase}${trimmed.slice(1)}`;
   }
 
   return trimmed;

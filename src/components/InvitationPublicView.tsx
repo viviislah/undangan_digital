@@ -940,9 +940,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
         duration={0.95}
         className="relative min-h-[620px] flex flex-col justify-center items-center text-center px-4 py-8 sm:p-6 bg-cover bg-center overflow-hidden"
         style={{
-          backgroundImage: `linear-gradient(to bottom, rgba(15, 12, 10, 0.4) 0%, rgba(15, 12, 10, 0.65) 60%, ${themeVisuals.palette.bg} 100%), url(${
-            effectiveCoverPhoto
-          })`,
+          backgroundImage: `linear-gradient(to bottom, rgba(15, 12, 10, 0.4) 0%, rgba(15, 12, 10, 0.65) 60%, ${themeVisuals.palette.bg} 100%), url("${effectiveCoverPhoto.replace(/"/g, '\\"')}")`,
         }}
       >
         {/* Subtle Ken Burns zoom effect */}
@@ -951,7 +949,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
           transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
           className="absolute inset-0 bg-cover bg-center -z-10 pointer-events-none opacity-40"
           style={{
-            backgroundImage: `url(${effectiveCoverPhoto})`,
+            backgroundImage: `url("${effectiveCoverPhoto.replace(/"/g, '\\"')}")`,
             filter: themeVisuals?.coverBlur ? `blur(${themeVisuals.coverBlur}px)` : 'none',
           }}
         />
@@ -1144,7 +1142,8 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
           >
             <div className="w-full h-full rounded-xl sm:rounded-2xl overflow-hidden relative">
               <CinematicImageReveal
-                src={invitation.mempelaiPria.fotoUrl || FALLBACK_GROOM_IMG}
+                src={resolveExternalMediaUrl(invitation.mempelaiPria.fotoUrl) || FALLBACK_GROOM_IMG}
+                fallbackSrc={FALLBACK_GROOM_IMG}
                 alt={invitation.mempelaiPria.namaLengkap}
                 direction="left"
                 shape={
@@ -1257,7 +1256,8 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
           >
             <div className="w-full h-full rounded-xl sm:rounded-2xl overflow-hidden relative">
               <CinematicImageReveal
-                src={invitation.mempelaiWanita.fotoUrl || FALLBACK_BRIDE_IMG}
+                src={resolveExternalMediaUrl(invitation.mempelaiWanita.fotoUrl) || FALLBACK_BRIDE_IMG}
+                fallbackSrc={FALLBACK_BRIDE_IMG}
                 alt={invitation.mempelaiWanita.namaLengkap}
                 direction="right"
                 shape={
@@ -1547,7 +1547,8 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                 {story.fotoUrl && (
                   <div className={`mt-2.5 ${themeVisuals.cardShapeClass} overflow-hidden shadow-md max-w-xs border border-white/20`}>
                     <CinematicImageReveal
-                      src={story.fotoUrl}
+                      src={resolveExternalMediaUrl(story.fotoUrl) || FALLBACK_WEDDING_IMG}
+                      fallbackSrc={FALLBACK_WEDDING_IMG}
                       alt={story.judul}
                       direction="zoom"
                       delay={sIndex * 0.12}
@@ -1614,7 +1615,8 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                   }`}
                 >
                   <CinematicImageReveal
-                    src={photo.url || FALLBACK_WEDDING_IMG}
+                    src={resolveExternalMediaUrl(photo.url) || FALLBACK_WEDDING_IMG}
+                    fallbackSrc={FALLBACK_WEDDING_IMG}
                     alt={photo.caption || 'Foto Prewedding'}
                     direction="curtain"
                     delay={(index % 4) * 0.08}

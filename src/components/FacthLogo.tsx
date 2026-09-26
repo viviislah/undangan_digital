@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { resolveExternalMediaUrl } from '../services/imageService';
 
 interface FacthLogoProps {
   className?: string;
@@ -26,12 +27,14 @@ export const FacthLogo: React.FC<FacthLogoProps> = ({
 
   // For light backgrounds (e.g. top Navbar), use dark stone logo
   // For dark backgrounds (e.g. footer), use white logo
-  const logoSrc = theme === 'dark' ? '/facth-logo-white.png' : '/facth-logo-dark.png';
+  const rawLogo = theme === 'dark' ? '/facth-logo-white.png' : '/facth-logo-dark.png';
+  const logoSrc = resolveExternalMediaUrl(rawLogo);
+  const fallbackSrc = resolveExternalMediaUrl('/facth-logo.png');
 
   return (
     <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
       <img
-        src={loadError ? '/facth-logo.png' : logoSrc}
+        src={loadError ? fallbackSrc : logoSrc}
         alt="Facth Printing"
         className={`${heightClasses} w-auto object-contain transition-transform duration-200 group-hover:scale-105`}
         loading="eager"
