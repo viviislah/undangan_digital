@@ -86,8 +86,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const handleCopyLink = (inv: InvitationData) => {
     const guestName = guestNames[inv.id]?.trim() || '';
-    const baseUrl = `${window.location.origin}${window.location.pathname}#invite/${inv.slug}`;
-    const url = guestName ? `${baseUrl}&to=${encodeURIComponent(guestName)}` : baseUrl;
+    const baseOrigin = window.location.origin;
+    const baseUrl = `${baseOrigin}/#invite/${inv.slug || inv.id}`;
+    const url = guestName ? `${baseUrl}?to=${encodeURIComponent(guestName)}` : baseUrl;
     
     navigator.clipboard.writeText(url);
     setCopiedId(inv.id);
@@ -104,9 +105,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       formattedPhone = '62' + formattedPhone.substring(1);
     }
 
-    const baseUrl = `${window.location.origin}${window.location.pathname}#invite/${inv.slug}`;
-    const guestParam = guestNames[inv.id]?.trim() ? `&to=${encodeURIComponent(guestNames[inv.id].trim())}` : '';
-    const invitationUrl = `${baseUrl}${guestParam}`;
+    const baseOrigin = window.location.origin;
+    const guestParam = guestNames[inv.id]?.trim() ? `?to=${encodeURIComponent(guestNames[inv.id].trim())}` : '';
+    const invitationUrl = `${baseOrigin}/#invite/${inv.slug || inv.id}${guestParam}`;
 
     const primaryEvent = inv.events[0];
     const dateFormatted = primaryEvent

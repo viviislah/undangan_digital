@@ -14,7 +14,8 @@ import {
   getRSVPsFromDb,
   addRSVPReplyInDb,
 } from './src/db/invitations.ts';
-import { SAMPLE_INVITATION_1, SAMPLE_INVITATION_2 } from './src/services/storageService.ts';
+import { SAMPLE_INVITATION_1, SAMPLE_INVITATION_2, createNewInvitationFromTemplate } from './src/services/storageService.ts';
+import { TEMPLATES } from './src/data/templates.ts';
 import { getOrCreateUser } from './src/db/users.ts';
 import { optionalAuth, requireAuth, AuthRequest } from './src/middleware/auth.ts';
 
@@ -275,6 +276,9 @@ app.get('/api/invitations', async (_req, res) => {
 // API: Get invitation by slug or id
 app.get('/api/invitations/:slugOrId', async (req, res) => {
   const { slugOrId } = req.params;
+  const cleanParam = decodeURIComponent(slugOrId).trim().toLowerCase();
+
+  // 1. Try PostgreSQL database first
   try {
     const foundDb = await getInvitationBySlugOrIdFromDb(slugOrId);
     if (foundDb) {
@@ -284,15 +288,61 @@ app.get('/api/invitations/:slugOrId', async (req, res) => {
     console.warn('Database query fallback for invitation:', err);
   }
 
+  // 2. Check local data file backup
   const invitations = loadInvitations();
-  const found = invitations.find((i: any) => i.slug === slugOrId || i.id === slugOrId);
-  if (!found) {
-    return res.status(404).json({ error: 'Invitation not found' });
+  const found = invitations.find(
+    (i: any) =>
+      (i.slug && i.slug.toLowerCase() === cleanParam) ||
+      (i.id && i.id.toLowerCase() === cleanParam)
+  );
+  if (found) {
+    return res.json({
+      ...found,
+      rsvpList: deduplicateRsvps(found.rsvpList || []),
+    });
   }
-  res.json({
-    ...found,
-    rsvpList: deduplicateRsvps(found.rsvpList || []),
-  });
+
+  // 3. Fallback to default sample invitations (ensures shared customer preview links always work)
+  if (
+    cleanParam === 'rizky-amanda' ||
+    cleanParam === SAMPLE_INVITATION_1.slug.toLowerCase() ||
+    cleanParam === SAMPLE_INVITATION_1.id.toLowerCase()
+  ) {
+    try {
+      await upsertInvitationInDb(SAMPLE_INVITATION_1);
+    } catch {}
+    return res.json(SAMPLE_INVITATION_1);
+  }
+
+  if (
+    cleanParam === 'dimas-sarah' ||
+    cleanParam === 'dimas-citra' ||
+    cleanParam === SAMPLE_INVITATION_2.slug.toLowerCase() ||
+    cleanParam === SAMPLE_INVITATION_2.id.toLowerCase()
+  ) {
+    try {
+      await upsertInvitationInDb(SAMPLE_INVITATION_2);
+    } catch {}
+    return res.json(SAMPLE_INVITATION_2);
+  }
+
+  // 4. Fallback to theme template sample invitation
+  const matchedTemplate = TEMPLATES.find(
+    (t) => t.id === cleanParam || cleanParam.includes(t.id) || cleanParam === 'katalog'
+  );
+  if (matchedTemplate) {
+    const demoInv = createNewInvitationFromTemplate(matchedTemplate, {
+      title: `The Wedding of Farhan & Nabila (${matchedTemplate.name})`,
+      slug: cleanParam,
+      isPublished: true,
+    });
+    try {
+      await upsertInvitationInDb(demoInv);
+    } catch {}
+    return res.json(demoInv);
+  }
+
+  return res.status(404).json({ error: 'Invitation not found' });
 });
 
 // API: Increment invitation view count

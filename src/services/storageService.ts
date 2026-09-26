@@ -330,7 +330,7 @@ export const getStoredInvitations = (): InvitationData[] => {
 
 export const saveInvitationToStorage = (
   invitation: InvitationData,
-  syncToServer = false,
+  syncToServer = true,
   onServerSyncComplete?: (updatedInvitation: InvitationData) => void
 ): InvitationData[] => {
   const all = getStoredInvitations();
@@ -470,12 +470,38 @@ export const loadSampleInvitationsToStorage = (): InvitationData[] => {
   } catch (err) {
     console.error('Failed to load sample invitations:', err);
   }
+  // Sync to server so public links work for anyone viewing
+  samples.forEach((sample) => {
+    saveInvitationToStorage(sample, true);
+  });
   return samples;
 };
 
 export const findInvitationBySlugOrId = (slugOrId: string): InvitationData | undefined => {
   const all = getStoredInvitations();
-  return all.find((i) => i.slug === slugOrId || i.id === slugOrId);
+  const clean = slugOrId.toLowerCase().trim();
+  const found = all.find((i) => i.slug?.toLowerCase() === clean || i.id?.toLowerCase() === clean);
+  if (found) return found;
+
+  // Fallback to sample invitations
+  if (clean === 'rizky-amanda' || clean === SAMPLE_INVITATION_1.slug || clean === SAMPLE_INVITATION_1.id) {
+    return SAMPLE_INVITATION_1;
+  }
+  if (clean === 'dimas-sarah' || clean === 'dimas-citra' || clean === SAMPLE_INVITATION_2.slug || clean === SAMPLE_INVITATION_2.id) {
+    return SAMPLE_INVITATION_2;
+  }
+
+  // Fallback to template sample
+  const matchedTmpl = TEMPLATES.find((t) => t.id === clean || clean.includes(t.id));
+  if (matchedTmpl) {
+    return createNewInvitationFromTemplate(matchedTmpl, {
+      title: `The Wedding of Farhan & Nabila (${matchedTmpl.name})`,
+      slug: slugOrId,
+      isPublished: true,
+    });
+  }
+
+  return undefined;
 };
 
 export const fetchInvitationBySlugOrIdAsync = async (slugOrId: string): Promise<InvitationData | undefined> => {
@@ -489,7 +515,7 @@ export const fetchInvitationBySlugOrIdAsync = async (slugOrId: string): Promise<
     if (res.ok) {
       const serverInv = await res.json();
       if (serverInv && serverInv.id) {
-        saveInvitationToStorage(serverInv);
+        saveInvitationToStorage(serverInv, false);
         return serverInv;
       }
     }

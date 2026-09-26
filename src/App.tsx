@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { CustomerThemePreviewView } from './components/CustomerThemePreviewView';
 import { LandingPageView } from './views/LandingPageView';
@@ -28,21 +28,164 @@ import {
   deduplicateRSVPList,
   incrementViewCount,
 } from './services/storageService';
-import { ArrowLeft, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Sparkles, X, HeartHandshake, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+interface ParsedRoute {
+  view: 'landing' | 'dashboard' | 'wizard' | 'editor' | 'fullscreen' | 'public' | 'customer-admin' | 'customer-theme-preview';
+  slug?: string;
+  guestName?: string;
+  themeId?: string;
+}
+
+function parseCurrentRoute(): ParsedRoute {
+  if (typeof window === 'undefined') return { view: 'landing' };
+
+  const hash = window.location.hash || '';
+  const pathname = window.location.pathname || '';
+  const search = window.location.search || '';
+  const params = new URLSearchParams(search);
+
+  // 1. Direct invitation link via hash: #invite/:slug
+  if (hash.startsWith('#invite/')) {
+    const raw = hash.replace('#invite/', '');
+    let slug = raw;
+    let guest = params.get('to') || 'Bapak / Ibu Tamu Terhormat';
+
+    if (raw.includes('&to=')) {
+      guest = decodeURIComponent(raw.split('&to=')[1].split('&')[0]);
+      slug = raw.split('&to=')[0];
+    } else if (raw.includes('?to=')) {
+      guest = decodeURIComponent(raw.split('?to=')[1].split('&')[0]);
+      slug = raw.split('?to=')[0];
+    }
+    slug = slug.split('&')[0].split('?')[0];
+    return { view: 'public', slug, guestName: guest };
+  }
+
+  // 2. Direct invitation link via path: /invite/:slug or /undangan/:slug
+  if (pathname.startsWith('/invite/') || pathname.startsWith('/undangan/')) {
+    const prefix = pathname.startsWith('/invite/') ? '/invite/' : '/undangan/';
+    const rawSlug = pathname.replace(prefix, '').split('/')[0].split('?')[0];
+    const guest = params.get('to') || 'Bapak / Ibu Tamu Terhormat';
+    return { view: 'public', slug: rawSlug, guestName: guest };
+  }
+
+  // 3. Direct invitation query param: ?invite=:slug
+  if (params.get('invite')) {
+    return {
+      view: 'public',
+      slug: params.get('invite')!,
+      guestName: params.get('to') || 'Bapak / Ibu Tamu Terhormat',
+    };
+  }
+
+  // 4. Customer Theme Preview via hash: #theme/:id or #preview-theme/:id
+  if (hash.startsWith('#theme/') || hash.startsWith('#preview-theme/')) {
+    const rawThemeId = hash.startsWith('#theme/')
+      ? hash.replace('#theme/', '')
+      : hash.replace('#preview-theme/', '');
+    return { view: 'customer-theme-preview', themeId: rawThemeId || 'elegant-gold' };
+  }
+
+  // 5. Customer Theme Preview via path: /theme/:id
+  if (pathname.startsWith('/theme/') || pathname.startsWith('/preview-theme/')) {
+    const rawThemeId = pathname.replace(/^\/(theme|preview-theme)\//, '').split('/')[0];
+    return { view: 'customer-theme-preview', themeId: rawThemeId || 'elegant-gold' };
+  }
+
+  // 6. Customer Admin / Manage: #manage/:slug or /manage/:slug
+  if (hash.startsWith('#manage/')) {
+    return { view: 'customer-admin', slug: hash.replace('#manage/', '').split('?')[0] };
+  }
+  if (pathname.startsWith('/manage/')) {
+    return { view: 'customer-admin', slug: pathname.replace('/manage/', '').split('/')[0] };
+  }
+
+  // 7. Catalog scroll: #katalog or #templates
+  if (hash === '#katalog' || hash === '#templates') {
+    return { view: 'landing' };
+  }
+
+  return { view: 'landing' };
+}
+
 export default function App() {
+  const initialRoute = parseCurrentRoute();
   const [invitations, setInvitations] = useState<InvitationData[]>([]);
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'wizard' | 'editor' | 'fullscreen' | 'public' | 'customer-admin' | 'customer-theme-preview'>('landing');
-  const [customerPreviewThemeId, setCustomerPreviewThemeId] = useState<string>('elegant-gold');
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'wizard' | 'editor' | 'fullscreen' | 'public' | 'customer-admin' | 'customer-theme-preview'>(initialRoute.view);
+  const [customerPreviewThemeId, setCustomerPreviewThemeId] = useState<string>(initialRoute.themeId || 'elegant-gold');
   const [activeInvitation, setActiveInvitation] = useState<InvitationData | null>(null);
   const [wizardTemplate, setWizardTemplate] = useState<TemplateDefinition | undefined>(undefined);
 
-  // Hash-based public invitation state
+  // Public invitation state
   const [publicInvitation, setPublicInvitation] = useState<InvitationData | null>(null);
-  const [guestNameParam, setGuestNameParam] = useState<string>('Tamu Undangan');
+  const [guestNameParam, setGuestNameParam] = useState<string>(initialRoute.guestName || 'Bapak / Ibu Tamu Terhormat');
+  const [isLoadingPublicInvitation, setIsLoadingPublicInvitation] = useState<boolean>(initialRoute.view === 'public');
 
-  // Initial load
+  // Load public invitation by slug
+  const loadPublicInvitation = useCallback((slug: string, guestName?: string) => {
+    if (!slug) {
+      setIsLoadingPublicInvitation(false);
+      return;
+    }
+
+    setIsLoadingPublicInvitation(true);
+    const targetGuest = guestName || 'Bapak / Ibu Tamu Terhormat';
+    setGuestNameParam(targetGuest);
+
+    const applyInvitation = (inv: InvitationData) => {
+      let updatedGuests = inv.guests || [];
+      let wasUpdated = false;
+      const cleanGuestName = targetGuest.trim();
+
+      if (cleanGuestName && cleanGuestName !== 'Bapak / Ibu Tamu Terhormat' && cleanGuestName !== 'Tamu Undangan') {
+        updatedGuests = updatedGuests.map((g) => {
+          if (g.nama.toLowerCase().trim() === cleanGuestName.toLowerCase() && g.statusUndangan !== 'opened') {
+            wasUpdated = true;
+            return { ...g, statusUndangan: 'opened' as any };
+          }
+          return g;
+        });
+      }
+
+      if (wasUpdated) {
+        inv.guests = updatedGuests;
+        saveInvitationToStorage(inv, true);
+        const currentList = getStoredInvitations();
+        setInvitations(currentList);
+      }
+
+      setPublicInvitation(inv);
+      setIsLoadingPublicInvitation(false);
+      setCurrentView('public');
+      incrementViewCount(inv.id);
+    };
+
+    // 1. Instant local lookup
+    const localFound = findInvitationBySlugOrId(slug);
+    if (localFound) {
+      applyInvitation(localFound);
+    }
+
+    // 2. Fetch from server so cross-device and latest updates apply
+    fetchInvitationBySlugOrIdAsync(slug)
+      .then((serverInv) => {
+        if (serverInv) {
+          applyInvitation(serverInv);
+        } else if (!localFound) {
+          setIsLoadingPublicInvitation(false);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to fetch public invitation:', err);
+        if (!localFound) {
+          setIsLoadingPublicInvitation(false);
+        }
+      });
+  }, []);
+
+  // Initial load and URL routing listener
   useEffect(() => {
     const loaded = getStoredInvitations();
     setInvitations(loaded);
@@ -53,95 +196,54 @@ export default function App() {
       }
     });
 
-    // Check URL hash for direct guest invitation link: #invite/:slug or ?to=...
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash.startsWith('#invite/')) {
-        const fullHash = hash.replace('#invite/', '');
-        // Check if query params exist in hash, e.g. "slug&to=Nama" or "slug?to=Nama"
-        let slug = fullHash;
-        let guestName = 'Bapak / Ibu Tamu Terhormat';
+    const handleRouteChange = () => {
+      const route = parseCurrentRoute();
 
-        if (fullHash.includes('&to=')) {
-          const rawTo = fullHash.split('&to=')[1].split('&')[0];
-          slug = fullHash.split('&to=')[0];
-          guestName = decodeURIComponent(rawTo);
-        } else if (fullHash.includes('?to=')) {
-          const rawTo = fullHash.split('?to=')[1].split('&')[0];
-          slug = fullHash.split('?to=')[0];
-          guestName = decodeURIComponent(rawTo);
-        } else if (fullHash.includes('&')) {
-          slug = fullHash.split('&')[0];
-        } else if (fullHash.includes('?')) {
-          slug = fullHash.split('?')[0];
-        }
-
-        const openInvitation = (inv: InvitationData) => {
-          let updatedGuests = inv.guests || [];
-          let wasUpdated = false;
-          const cleanGuestName = (guestName || '').trim();
-
-          if (cleanGuestName && cleanGuestName !== 'Bapak / Ibu Tamu Terhormat' && cleanGuestName !== 'Tamu Undangan') {
-            updatedGuests = updatedGuests.map((g) => {
-              if (g.nama.toLowerCase().trim() === cleanGuestName.toLowerCase() && g.statusUndangan !== 'opened') {
-                wasUpdated = true;
-                return { ...g, statusUndangan: 'opened' as any };
-              }
-              return g;
-            });
-          }
-
-          if (wasUpdated) {
-            inv.guests = updatedGuests;
-            saveInvitationToStorage(inv, true);
-            const currentList = getStoredInvitations();
-            setInvitations(currentList);
-          }
-
-          setPublicInvitation(inv);
-          setGuestNameParam(guestName);
-          setCurrentView('public');
-          incrementViewCount(inv.id);
-        };
-
-        const found = findInvitationBySlugOrId(slug);
-        if (found) {
-          openInvitation(found);
-        }
-
-        // Always fetch from server so mobile phone gets the exact custom music URL saved from PC
-        fetchInvitationBySlugOrIdAsync(slug).then((serverInv) => {
-          if (serverInv) {
-            openInvitation(serverInv);
-          }
-        });
-      } else if (hash.startsWith('#manage/')) {
-        const slug = hash.replace('#manage/', '');
-        const found = findInvitationBySlugOrId(slug);
+      if (route.view === 'public' && route.slug) {
+        loadPublicInvitation(route.slug, route.guestName);
+      } else if (route.view === 'customer-admin' && route.slug) {
+        const found = findInvitationBySlugOrId(route.slug);
         if (found) {
           setActiveInvitation(found);
           setCurrentView('customer-admin');
+        } else {
+          fetchInvitationBySlugOrIdAsync(route.slug).then((serverInv) => {
+            if (serverInv) {
+              setActiveInvitation(serverInv);
+              setCurrentView('customer-admin');
+            }
+          });
         }
-      } else if (hash.startsWith('#theme/') || hash.startsWith('#preview-theme/')) {
-        const themeId = hash.startsWith('#theme/')
-          ? hash.replace('#theme/', '')
-          : hash.replace('#preview-theme/', '');
-        setCustomerPreviewThemeId(themeId || 'elegant-gold');
+      } else if (route.view === 'customer-theme-preview') {
+        setCustomerPreviewThemeId(route.themeId || 'elegant-gold');
         setCurrentView('customer-theme-preview');
-      } else if (hash === '#katalog' || hash === '#templates') {
-        setCurrentView('landing');
-        setTimeout(() => {
-          document.getElementById('templates-section')?.scrollIntoView({ behavior: 'smooth' });
-        }, 150);
-      } else if (hash === '' && (currentView === 'public' || currentView === 'customer-admin' || currentView === 'customer-theme-preview')) {
-        setCurrentView('landing');
+      } else {
+        const hash = window.location.hash;
+        if (hash === '#katalog' || hash === '#templates') {
+          setCurrentView('landing');
+          setTimeout(() => {
+            document.getElementById('templates-section')?.scrollIntoView({ behavior: 'smooth' });
+          }, 150);
+        } else if (hash === '' && (currentView === 'public' || currentView === 'customer-admin' || currentView === 'customer-theme-preview')) {
+          setCurrentView('landing');
+        }
       }
     };
 
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+    // If initial load targeted a public invitation, fetch it now
+    if (initialRoute.view === 'public' && initialRoute.slug) {
+      loadPublicInvitation(initialRoute.slug, initialRoute.guestName);
+    } else if (initialRoute.view === 'customer-admin' && initialRoute.slug) {
+      handleRouteChange();
+    }
+
+    window.addEventListener('hashchange', handleRouteChange);
+    window.addEventListener('popstate', handleRouteChange);
+    return () => {
+      window.removeEventListener('hashchange', handleRouteChange);
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, [loadPublicInvitation]);
 
   // Handlers
   const handleStartNewInvitation = (template?: TemplateDefinition) => {
@@ -235,17 +337,64 @@ export default function App() {
     }
   };
 
-  // 1. PUBLIC GUEST VIEW (Opened via WhatsApp link e.g. #invite/:slug)
-  if (currentView === 'public' && publicInvitation) {
+  // 1. PUBLIC GUEST VIEW (Opened via WhatsApp link e.g. #invite/:slug or /invite/:slug)
+  if (currentView === 'public') {
+    if (isLoadingPublicInvitation && !publicInvitation) {
+      return (
+        <div className="min-h-screen bg-stone-900 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-14 h-14 border-3 border-amber-400 border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-stone-300 text-sm font-medium tracking-wide">
+            Membuka Undangan Digital...
+          </p>
+          <p className="text-stone-500 text-xs mt-1">
+            Mohon tunggu sebentar
+          </p>
+        </div>
+      );
+    }
+
+    if (publicInvitation) {
+      return (
+        <div className="min-h-screen bg-stone-900 flex justify-center">
+          <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative">
+            <InvitationPublicView
+              invitation={publicInvitation}
+              guestName={guestNameParam}
+              onAddRSVP={handleAddPublicRSVP}
+              onAddRSVPReply={handleAddPublicRSVPReply}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // Invitation Not Found fallback screen (never falls back to the builder website!)
     return (
-      <div className="min-h-screen bg-stone-900 flex justify-center">
-        <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative">
-          <InvitationPublicView
-            invitation={publicInvitation}
-            guestName={guestNameParam}
-            onAddRSVP={handleAddPublicRSVP}
-            onAddRSVPReply={handleAddPublicRSVPReply}
-          />
+      <div className="min-h-screen bg-stone-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-2xl space-y-5">
+          <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <HeartHandshake className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="font-serif-display text-2xl font-bold text-stone-900">
+              Undangan Tidak Ditemukan
+            </h2>
+            <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
+              Mohon maaf, tautan undangan pernikahan ini tidak ditemukan atau belum dipublikasikan. Silakan hubungi pengantin atau vendor untuk mendapatkan tautan terbaru.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
+            <button
+              onClick={() => {
+                window.location.hash = '';
+                window.location.pathname = '/';
+                setCurrentView('landing');
+              }}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-semibold shadow-md transition-all active:scale-95 cursor-pointer"
+            >
+              <span>Buka Halaman Utama</span>
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -22,9 +22,9 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
   if (!isOpen) return null;
 
   // Build clean web URL
-  const baseUrl = window.location.origin + window.location.pathname;
-  const guestParam = guestName ? `&to=${encodeURIComponent(guestName)}` : '';
-  const invitationUrl = `${baseUrl}#invite/${invitation.slug}${guestParam}`;
+  const baseOrigin = window.location.origin;
+  const guestParam = guestName ? `?to=${encodeURIComponent(guestName)}` : '';
+  const invitationUrl = `${baseOrigin}/#invite/${invitation.slug || invitation.id}${guestParam}`;
 
   const primaryEvent = invitation.events[0];
   const dateFormatted = primaryEvent
