@@ -32,6 +32,7 @@ export const MusicSelector: React.FC<MusicSelectorProps> = ({
   );
   const [isPlayingPreview, setIsPlayingPreview] = useState<boolean>(false);
   const [fileName, setFileName] = useState<string>('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Stop any audio preview when component unmounts
@@ -60,10 +61,11 @@ export const MusicSelector: React.FC<MusicSelectorProps> = ({
 
     // Check size limit (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('Ukuran file musik maksimal 10 MB agar undangan dapat dimuat dengan lancar di handphone.');
+      setUploadError('Ukuran file musik maksimal 10 MB agar undangan dapat dimuat dengan lancar di handphone.');
       return;
     }
 
+    setUploadError(null);
     setFileName(file.name);
     const cleanTitle = file.name.replace(/\.[^/.]+$/, '');
 
@@ -279,6 +281,13 @@ export const MusicSelector: React.FC<MusicSelectorProps> = ({
                   Jelajahi File
                 </button>
               </div>
+
+              {uploadError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                  <Info className="w-4 h-4 shrink-0 text-rose-500" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
 
               {/* Uploaded File Info & Play Preview */}
               {music.audioUrl && (music.audioUrl.startsWith('data:') || music.audioUrl.startsWith('indexeddb:')) && (

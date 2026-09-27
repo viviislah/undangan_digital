@@ -59,6 +59,7 @@ import { InvitationQRCardModal, QRTargetMode } from '../components/InvitationQRC
 import { InteractiveEventMap, parseCoordinatesFromUrl } from '../components/InteractiveEventMap';
 import { fetchRSVPListAsync, deduplicateRSVPList } from '../services/storageService';
 import { compressImageFile, uploadImageToServer, resolveExternalMediaUrl } from '../services/imageService';
+import { getInvitationPublicUrl } from '../utils/urlHelper';
 
 export const COLOR_PRESETS = [
   {
@@ -499,6 +500,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
   const [selectedEventQrIdx, setSelectedEventQrIdx] = useState<number>(0);
   const [saveToast, setSaveToast] = useState(false);
   const [publishToast, setPublishToast] = useState(false);
+  const [copiedLinkToast, setCopiedLinkToast] = useState(false);
   const [previewOpened, setPreviewOpened] = useState(false);
   const [previewAnimationKey, setPreviewAnimationKey] = useState(0);
 
@@ -689,7 +691,16 @@ export const EditorView: React.FC<EditorViewProps> = ({
     onSave(updated);
     setAutoSaveStatus('saved');
     setPublishToast(true);
+    // Immediately open WhatsApp share modal so user can copy link or send to customer
+    setIsShareModalOpen(true);
     setTimeout(() => setPublishToast(false), 3000);
+  };
+
+  const handleCopyPublicLink = () => {
+    const url = getInvitationPublicUrl(latestInvitationRef.current);
+    navigator.clipboard.writeText(url);
+    setCopiedLinkToast(true);
+    setTimeout(() => setCopiedLinkToast(false), 2500);
   };
 
   const handleBackToDashboard = () => {
@@ -914,11 +925,31 @@ export const EditorView: React.FC<EditorViewProps> = ({
             <span className="hidden md:inline">Cetak QR Card</span>
           </button>
 
+          {/* Copy Link */}
+          <button
+            id="editor-btn-copy-link"
+            onClick={handleCopyPublicLink}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 text-xs font-semibold transition-colors cursor-pointer"
+            title="Salin link undangan publik untuk dikirim ke customer"
+          >
+            {copiedLinkToast ? (
+              <>
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span className="hidden sm:inline text-emerald-700">Tersalin!</span>
+              </>
+            ) : (
+              <>
+                <Link2 className="w-4 h-4 text-stone-600" />
+                <span className="hidden sm:inline">Salin Link</span>
+              </>
+            )}
+          </button>
+
           {/* Share WhatsApp */}
           <button
             id="editor-btn-share"
             onClick={() => setIsShareModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition-colors cursor-pointer"
           >
             <Share2 className="w-4 h-4 text-emerald-600" />
             <span className="hidden sm:inline">Bagikan WhatsApp</span>
@@ -958,6 +989,13 @@ export const EditorView: React.FC<EditorViewProps> = ({
         <div className="fixed top-16 right-4 z-50 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 animate-bounce">
           <Globe className="w-4 h-4" />
           <span>Undangan berhasil dipublikasikan & aktif!</span>
+        </div>
+      )}
+
+      {copiedLinkToast && (
+        <div className="fixed top-16 right-4 z-50 bg-stone-900 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 animate-bounce">
+          <Check className="w-4 h-4 text-emerald-400" />
+          <span>Link undangan customer berhasil disalin ke clipboard!</span>
         </div>
       )}
 

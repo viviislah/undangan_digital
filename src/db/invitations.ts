@@ -1,4 +1,4 @@
-import { eq, or, sql } from 'drizzle-orm';
+import { eq, or, ilike, sql } from 'drizzle-orm';
 import { db } from './index.ts';
 import { invitations, rsvps } from './schema.ts';
 import { InvitationData, RSVPRecord, RSVPReply, AttendanceStatus } from '../types/invitation';
@@ -28,10 +28,11 @@ export async function getAllInvitationsFromDb(): Promise<InvitationData[]> {
 
 export async function getInvitationBySlugOrIdFromDb(slugOrId: string): Promise<InvitationData | null> {
   try {
+    const clean = slugOrId.trim();
     const records = await db
       .select()
       .from(invitations)
-      .where(or(eq(invitations.slug, slugOrId), eq(invitations.id, slugOrId)))
+      .where(or(ilike(invitations.slug, clean), ilike(invitations.id, clean), eq(invitations.slug, clean), eq(invitations.id, clean)))
       .limit(1);
 
     if (records.length === 0) return null;

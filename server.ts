@@ -171,9 +171,13 @@ app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Audio streaming proxy to bypass CORS restrictions
 app.get('/api/proxy-audio', async (req, res) => {
-  const url = req.query.url as string;
+  let url = (req.query.url as string) || '';
+  const id = (req.query.id as string) || '';
+  if (!url && id) {
+    url = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(id)}`;
+  }
   if (!url) {
-    return res.status(400).send('URL query parameter is required');
+    return res.status(400).send('URL or id query parameter is required');
   }
 
   try {

@@ -24,6 +24,7 @@ import {
   ScanLine,
 } from 'lucide-react';
 import { InvitationData, EventSchedule } from '../types/invitation';
+import { getPublicBaseUrl } from '../utils/urlHelper';
 
 export type QRTargetMode = 'directions' | 'rsvp' | 'full';
 export type QRCardType = 'insert-card' | 'table-tent' | 'souvenir-tag' | 'raw-qr';
@@ -158,10 +159,7 @@ export const InvitationQRCardModal: React.FC<InvitationQRCardModalProps> = ({
       : undefined;
 
   // Base URL calculation
-  const baseUrl =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}${window.location.pathname}`
-      : 'https://invitation.example.com/';
+  const baseUrl = getPublicBaseUrl();
 
   // Build target destination URL
   let targetUrl = '';

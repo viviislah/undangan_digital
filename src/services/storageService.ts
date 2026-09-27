@@ -505,11 +505,6 @@ export const findInvitationBySlugOrId = (slugOrId: string): InvitationData | und
 };
 
 export const fetchInvitationBySlugOrIdAsync = async (slugOrId: string): Promise<InvitationData | undefined> => {
-  const local = findInvitationBySlugOrId(slugOrId);
-  if (local && local.music?.audioUrl) {
-    return local;
-  }
-
   try {
     const res = await fetch(`/api/invitations/${encodeURIComponent(slugOrId)}`);
     if (res.ok) {
@@ -523,7 +518,7 @@ export const fetchInvitationBySlugOrIdAsync = async (slugOrId: string): Promise<
     console.warn('Could not fetch invitation from server:', err);
   }
 
-  return local;
+  return findInvitationBySlugOrId(slugOrId);
 };
 
 export const syncAllInvitationsFromServer = async (): Promise<InvitationData[]> => {

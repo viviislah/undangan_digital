@@ -156,11 +156,18 @@ export const resolveExternalMediaUrl = (url?: string): string => {
     return trimmed;
   }
 
-  // Stale dev server uploaded URLs (e.g. /uploads/photo-xxx.jpg)
-  // When running on GitHub Pages (static host), local Express /uploads/ is not available.
-  // Fallback to a high-quality wedding photo so the invitation never shows broken/missing images.
+  // Server uploaded images (e.g. /uploads/photo-xxx.jpg)
+  // When running on static GitHub Pages, local Express /uploads/ is not available, so fallback.
+  // When running in fullstack (Express backend), serve the actual uploaded file.
   if (trimmed.startsWith('/uploads/') || trimmed.startsWith('uploads/')) {
-    return 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80';
+    if (typeof window !== 'undefined' && window.location?.hostname?.endsWith('github.io')) {
+      return 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80';
+    }
+    const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return `${window.location.origin}${cleanPath}`;
+    }
+    return cleanPath;
   }
 
   // Relative paths from public/ (e.g. /images/..., /facth-logo...)

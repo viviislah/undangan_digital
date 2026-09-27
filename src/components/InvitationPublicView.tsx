@@ -450,6 +450,9 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
     setTimeout(() => {
       setIsOpened(true);
       setIsOpeningSequence(false);
+      if (onOpenedChange) {
+        onOpenedChange(true);
+      }
     }, durationMs);
   };
 

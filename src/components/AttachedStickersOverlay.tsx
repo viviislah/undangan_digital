@@ -128,7 +128,7 @@ export const AttachedStickersOverlay: React.FC<AttachedStickersOverlayProps> = (
       case 'bottom-right':
         return { bottom: '24px', right: '20px' };
       case 'cover-center':
-        return { top: '65%', left: '50%', transform: 'translateX(-50%)' };
+        return { top: '65%', left: '50%' };
       case 'floating-bottom-right':
       default:
         return { bottom: '80px', right: '18px', zIndex: 40 };
@@ -150,7 +150,9 @@ export const AttachedStickersOverlay: React.FC<AttachedStickersOverlayProps> = (
           return (
             <div
               key={sticker.id}
-              className="absolute z-30 pointer-events-auto select-none"
+              className={`absolute z-30 pointer-events-auto select-none ${
+                sticker.position === 'cover-center' ? '-translate-x-1/2' : ''
+              }`}
               style={posStyle}
             >
               <motion.button

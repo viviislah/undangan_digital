@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { TemplateDefinition } from '../types/invitation';
 import { getThemeVisuals } from '../data/weddingAssets';
 import { getThemeOpeningAnimation } from '../data/themeAnimations';
+import { getPublicBaseUrl } from '../utils/urlHelper';
 
 interface ShareThemeModalProps {
   isOpen: boolean;
@@ -81,10 +82,7 @@ export const ShareThemeModal: React.FC<ShareThemeModalProps> = ({
   }, [templates, selectedTemplateId]);
 
   const baseUrl = useMemo(() => {
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}${window.location.pathname}`.replace(/\/$/, '');
-    }
-    return '';
+    return getPublicBaseUrl();
   }, []);
 
   const singleThemeLink = useMemo(() => {
@@ -175,7 +173,11 @@ _Silakan klik 1 tautan di atas untuk melihat dan mencoba setiap tema di layar pe
     const url = cleanPhone
       ? `https://wa.me/${cleanPhone}?text=${encoded}`
       : `https://api.whatsapp.com/send?text=${encoded}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.click();
   };
 
   const handleCopyMessage = () => {
