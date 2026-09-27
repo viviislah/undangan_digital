@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { TemplateDefinition } from '../types/invitation';
 import { getThemeVisuals } from '../data/weddingAssets';
 import { getThemeOpeningAnimation } from '../data/themeAnimations';
-import { getPublicBaseUrl } from '../utils/urlHelper';
+import { getBaseAppUrl, getThemePreviewUrl } from '../utils/urlHelper';
 
 interface ShareThemeModalProps {
   isOpen: boolean;
@@ -81,17 +81,13 @@ export const ShareThemeModal: React.FC<ShareThemeModalProps> = ({
     return templates.find((t) => t.id === selectedTemplateId) || templates[0];
   }, [templates, selectedTemplateId]);
 
-  const baseUrl = useMemo(() => {
-    return getPublicBaseUrl();
-  }, []);
-
   const singleThemeLink = useMemo(() => {
-    return `${baseUrl}#theme/${currentTemplate?.id || 'elegant-gold'}`;
-  }, [baseUrl, currentTemplate]);
+    return getThemePreviewUrl(currentTemplate?.id || 'elegant-gold');
+  }, [currentTemplate]);
 
   const catalogLink = useMemo(() => {
-    return `${baseUrl}#theme/katalog`;
-  }, [baseUrl]);
+    return `${getBaseAppUrl()}#theme/katalog`;
+  }, []);
 
   // Toggle selection for catalog mode
   const toggleCatalogId = (id: string) => {
@@ -173,11 +169,7 @@ _Silakan klik 1 tautan di atas untuk melihat dan mencoba setiap tema di layar pe
     const url = cleanPhone
       ? `https://wa.me/${cleanPhone}?text=${encoded}`
       : `https://api.whatsapp.com/send?text=${encoded}`;
-    const a = document.createElement('a');
-    a.href = url;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.click();
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleCopyMessage = () => {

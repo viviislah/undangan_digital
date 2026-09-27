@@ -231,7 +231,9 @@ export const WizardView: React.FC<WizardViewProps> = ({
                   Link Unik Undangan (URL Slug)
                 </label>
                 <div className="flex items-center rounded-xl border border-stone-300 px-3 bg-stone-50">
-                  <span className="text-xs text-stone-400 font-mono">facthprinting.id/#invite/</span>
+                  <span className="text-xs text-stone-400 font-mono">
+                    {typeof window !== 'undefined' ? `${window.location.host}/#invite/` : '#invite/'}
+                  </span>
                   <input
                     type="text"
                     value={slug}

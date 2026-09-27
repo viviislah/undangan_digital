@@ -43,6 +43,7 @@ import { FloatingPetals } from './FloatingPetals';
 import { AmbientEffectOverlay } from './AmbientEffectOverlay';
 import { AttachedStickersOverlay } from './AttachedStickersOverlay';
 import { getThemeVisuals, FALLBACK_WEDDING_IMG, FALLBACK_GROOM_IMG, FALLBACK_BRIDE_IMG } from '../data/weddingAssets';
+import { getBaseAppUrl } from '../utils/urlHelper';
 import { CinematicImageReveal } from './CinematicImageReveal';
 import { IntersectionSection } from './IntersectionSection';
 import { ThemeTopOrnament, ThemeBismillahHeader } from './ThemeOrnaments';
@@ -2990,7 +2991,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
             {/* QR Code Canvas */}
             <div className="p-4 bg-white rounded-2xl border-2 border-stone-200 inline-block shadow-inner mx-auto">
               <QRCodeSVG
-                value={`${typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''}#invite/${invitation.slug || invitation.id}&action=rsvp${
+                value={`${getBaseAppUrl()}#invite/${invitation.slug || invitation.id}?action=rsvp${
                   guestName && guestName !== 'Bapak / Ibu Tamu Terhormat' && guestName !== 'Tamu Undangan'
                     ? `&to=${encodeURIComponent(guestName)}`
                     : ''
@@ -3022,7 +3023,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  const url = `${typeof window !== 'undefined' ? window.location.origin + window.location.pathname : ''}#invite/${invitation.slug || invitation.id}&action=rsvp${
+                  const url = `${getBaseAppUrl()}#invite/${invitation.slug || invitation.id}?action=rsvp${
                     guestName && guestName !== 'Bapak / Ibu Tamu Terhormat' && guestName !== 'Tamu Undangan'
                       ? `&to=${encodeURIComponent(guestName)}`
                       : ''

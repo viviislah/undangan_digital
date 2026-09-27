@@ -23,6 +23,7 @@ import { TEMPLATES } from '../data/templates';
 import { WhatsAppShareModal } from '../components/WhatsAppShareModal';
 import { ShareThemeModal } from '../components/ShareThemeModal';
 import { InvitationQRCardModal } from '../components/InvitationQRCardModal';
+import { getInvitationPublicUrl, getCustomerAdminUrl } from '../utils/urlHelper';
 
 interface DashboardViewProps {
   invitations: InvitationData[];
@@ -86,9 +87,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const handleCopyLink = (inv: InvitationData) => {
     const guestName = guestNames[inv.id]?.trim() || '';
-    const baseOrigin = window.location.origin;
-    const baseUrl = `${baseOrigin}/#invite/${inv.slug || inv.id}`;
-    const url = guestName ? `${baseUrl}?to=${encodeURIComponent(guestName)}` : baseUrl;
+    const url = getInvitationPublicUrl(inv.slug || inv.id, guestName);
     
     navigator.clipboard.writeText(url);
     setCopiedId(inv.id);
@@ -105,9 +104,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       formattedPhone = '62' + formattedPhone.substring(1);
     }
 
-    const baseOrigin = window.location.origin;
-    const guestParam = guestNames[inv.id]?.trim() ? `?to=${encodeURIComponent(guestNames[inv.id].trim())}` : '';
-    const invitationUrl = `${baseOrigin}/#invite/${inv.slug || inv.id}${guestParam}`;
+    const invitationUrl = getInvitationPublicUrl(inv.slug || inv.id, guestNames[inv.id]?.trim());
 
     const primaryEvent = inv.events[0];
     const dateFormatted = primaryEvent
@@ -565,7 +562,7 @@ Hormat kami yang berbahagia,
 
                           {guestNames[inv.id] && (
                             <p className="text-[10px] text-stone-400 font-light truncate">
-                              Link: #invite/{inv.slug || inv.id}&to={encodeURIComponent(guestNames[inv.id])}
+                              Link: #invite/{inv.slug || inv.id}?to={encodeURIComponent(guestNames[inv.id])}
                             </p>
                           )}
 
@@ -574,7 +571,7 @@ Hormat kami yang berbahagia,
                             <button
                               type="button"
                               onClick={() => {
-                                const manageLink = `${window.location.origin}/#manage/${inv.slug || inv.id}`;
+                                const manageLink = getCustomerAdminUrl(inv.slug || inv.id);
                                 const text = `Halo, ini adalah link akses admin khusus untuk mengelola daftar tamu & mengirim undangan Anda sendiri via WhatsApp.\n\nSilakan klik link di bawah ini:\n${manageLink}\n\nTerima kasih!`;
                                 window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
                               }}

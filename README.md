@@ -1,12 +1,22 @@
-# Facth Printing - Aplikasi Undangan Digital Premium
+# Vhistetic - Aplikasi Undangan Digital Premium
 
 Aplikasi web modern untuk pembuatan, kustomisasi, pratinjau live, dan pembagian undangan digital pernikahan eksklusif dengan tema interaktif, animasi pembuka amplop, audio latar, integrasi RSVP & ucapan doa, Google Maps interaktif, amplop digital, dan ekspor kartu cetak QR.
 
 ---
 
-## 💡 Solusi Mengatasi Layar Putih (Blank White Page) di GitHub Pages
+## 💡 Solusi Mengatasi "404 There isn't a GitHub Pages site here"
 
-Layar putih terjadi karena GitHub sebelumnya menyarankan template **"Static HTML"** yang hanya mengunggah file mentah (`path: '.'`). Karena aplikasi ini dibuat dengan **React & Vite**, browser tidak bisa membaca file TypeScript (`/src/main.tsx`) secara langsung tanpa proses *compile/build*.
+Pesan error **"404 There isn't a GitHub Pages site here"** terjadi jika salah satu dari 2 hal ini terjadi:
+1. **GitHub Pages belum diaktifkan di Repositori**:
+   - Buka repositori Anda di GitHub.
+   - Klik **Settings** (kanan atas) > klik menu **Pages** di sebelah kiri.
+   - Di bagian **Build and deployment** > **Source**, pilih **GitHub Actions** (atau branch `gh-pages` jika deploy via CLI).
+   - Tunggu proses build di tab **Actions** selesai (centang hijau).
+2. **Link yang dibagikan tidak menyertakan nama repository**:
+   - Jika username Anda `viviislah` dan repository Anda bernama `vhistetic-undangan`, maka link harus berbentuk:
+     `https://viviislah.github.io/vhistetic-undangan/#invite/arya-citra?to=NamaTamu`
+   - Jika membuka `https://viviislah.github.io/` tanpa nama repository, GitHub akan menampilkan halaman 404 karena tidak ada web di root user Anda.
+   - **Kabar Baik:** Aplikasi kini sudah otomatis menyertakan sub-folder repository saat Anda menekan tombol **"Salin Link"** atau **"Kirim via WhatsApp"**.
 
 Aplikasi ini kini telah diperbaiki dengan konfigurasi:
 1. **GitHub Actions otomatis (`.github/workflows/static.yml`)**: Otomatis menjalankan `npm run build` dan mengunggah folder hasil kompilasi `./dist`.

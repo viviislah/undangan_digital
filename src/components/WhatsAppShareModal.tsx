@@ -22,29 +22,21 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Build clean web URL
-  const invitationUrl = getInvitationPublicUrl(invitation, guestName);
+  // Build clean web URL compatible with GitHub Pages subpaths and Cloud Run
+  const invitationUrl = getInvitationPublicUrl(invitation.slug || invitation.id, guestName);
 
-  const primaryEvent = invitation.events?.[0];
-  const dateFormatted = primaryEvent && primaryEvent.tanggal
-    ? (() => {
-        try {
-          return new Date(primaryEvent.tanggal).toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          });
-        } catch {
-          return primaryEvent.tanggal;
-        }
-      })()
+  const primaryEvent = invitation.events[0];
+  const dateFormatted = primaryEvent
+    ? new Date(primaryEvent.tanggal).toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
     : '';
 
-  const groomName = invitation.mempelaiPria?.namaPanggilan || invitation.mempelaiPria?.namaLengkap || 'Mempelai Pria';
-  const brideName = invitation.mempelaiWanita?.namaPanggilan || invitation.mempelaiWanita?.namaLengkap || 'Mempelai Wanita';
-  const groomFull = invitation.mempelaiPria?.namaLengkap || groomName;
-  const brideFull = invitation.mempelaiWanita?.namaLengkap || brideName;
+  const groomName = invitation.mempelaiPria.namaPanggilan;
+  const brideName = invitation.mempelaiWanita.namaPanggilan;
 
   // Generate message based on selected tone
   let messageContent = '';
@@ -131,11 +123,7 @@ Hormat kami yang berbahagia,
 
   const handleOpenWhatsApp = () => {
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(messageContent)}`;
-    const a = document.createElement('a');
-    a.href = waUrl;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.click();
+    window.open(waUrl, '_blank');
   };
 
   return (

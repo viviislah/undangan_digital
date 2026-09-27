@@ -1,44 +1,53 @@
-import { InvitationData } from '../types/invitation';
-
 /**
- * Returns the reliable public base URL for sharing with customers and guests.
- * In AI Studio environments, dev URLs (ais-dev-) require author authentication,
- * whereas preview URLs (ais-pre-) are publicly accessible by any external guest/phone.
+ * Helper to construct robust public URLs for invitations, theme previews, and admin panels.
+ * Works seamlessly across:
+ * 1. GitHub Pages (automatically preserves subpaths like /repo-name/)
+ * 2. Google AI Studio Cloud Run (maps authenticated ais-dev- to public ais-pre- for guests)
+ * 3. Custom domains and local development
  */
-export function getPublicBaseUrl(): string {
+
+export function getBaseAppUrl(): string {
   if (typeof window === 'undefined') return '';
+
   let origin = window.location.origin;
 
-  // Convert private AI Studio dev preview URL to public shared preview URL
+  // Convert AI Studio development domain to public shared preview domain
+  // so external customers can open invitations without logging into Google Cloud / AI Studio
   if (origin.includes('ais-dev-')) {
     origin = origin.replace('ais-dev-', 'ais-pre-');
   }
 
-  // Ensure no trailing slash
-  return origin.replace(/\/$/, '');
-}
+  // Determine subpath (crucial for GitHub Pages repositories like https://user.github.io/wedding-app/)
+  let pathname = window.location.pathname || '/';
 
-/**
- * Builds the canonical public URL for an invitation that works reliably across
- * mobile browsers, WhatsApp in-app browser, Safari, and Chrome.
- */
-export function getInvitationPublicUrl(
-  invitationOrSlug: InvitationData | string,
-  guestName?: string
-): string {
-  const base = getPublicBaseUrl();
-  const slug = typeof invitationOrSlug === 'string'
-    ? invitationOrSlug
-    : (invitationOrSlug.slug || invitationOrSlug.id);
+  // Strip single-page application routes if currently on /manage/..., /invite/..., etc.
+  pathname = pathname.replace(/\/(?:manage|invite|undangan|view|theme|preview-theme)(?:\/.*)?$/i, '');
 
-  const cleanSlug = encodeURIComponent(slug).replace(/%20/g, '-');
-  const cleanGuest = (guestName || '').trim();
-
-  // We use the universally supported hash route format: /#invite/slug
-  // with query param ?to=Nama
-  if (cleanGuest && cleanGuest !== 'Bapak / Ibu Tamu Terhormat' && cleanGuest !== 'Tamu Undangan' && cleanGuest !== 'Bpk/Ibu/Saudara/i') {
-    return `${base}/#invite/${cleanSlug}?to=${encodeURIComponent(cleanGuest)}`;
+  if (!pathname.startsWith('/')) {
+    pathname = '/' + pathname;
+  }
+  if (!pathname.endsWith('/')) {
+    pathname = pathname + '/';
   }
 
-  return `${base}/#invite/${cleanSlug}`;
+  return `${origin}${pathname}`;
+}
+
+export function getInvitationPublicUrl(slugOrId: string, guestName?: string): string {
+  const base = getBaseAppUrl();
+  const cleanSlug = (slugOrId || '').toLowerCase().trim().split('?')[0].split('&')[0].replace(/^\/+|\/+$/g, '');
+  const guestParam = guestName && guestName.trim() ? `?to=${encodeURIComponent(guestName.trim())}` : '';
+  return `${base}#invite/${cleanSlug}${guestParam}`;
+}
+
+export function getCustomerAdminUrl(slugOrId: string): string {
+  const base = getBaseAppUrl();
+  const cleanSlug = (slugOrId || '').toLowerCase().trim().split('?')[0].split('&')[0].replace(/^\/+|\/+$/g, '');
+  return `${base}#manage/${cleanSlug}`;
+}
+
+export function getThemePreviewUrl(themeId: string): string {
+  const base = getBaseAppUrl();
+  const cleanThemeId = (themeId || 'elegant-gold').trim().replace(/^\/+|\/+$/g, '');
+  return `${base}#theme/${cleanThemeId}`;
 }

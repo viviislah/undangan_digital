@@ -25,6 +25,7 @@ import {
 import { InvitationData, GuestRecord, RSVPRecord, AttendanceStatus, RSVPReply } from '../types/invitation';
 import { fetchRSVPListAsync, submitRSVPReplyAsync, deduplicateRSVPList } from '../services/storageService';
 import { InvitationQRCardModal } from '../components/InvitationQRCardModal';
+import { getInvitationPublicUrl, getCustomerAdminUrl } from '../utils/urlHelper';
 
 const LOCAL_CONTACTS_MOCK = [
   { nama: 'Ahmad Fauzi', tel: '081234567890' },
@@ -201,9 +202,7 @@ export const CustomerAdminView: React.FC<CustomerAdminViewProps> = ({
 
   // Generate Personalized Invitation Link
   const generateInviteLink = (name: string) => {
-    const origin = window.location.origin;
-    const encodedName = encodeURIComponent(name.trim());
-    return `${origin}/#invite/${invitation.slug || invitation.id}?to=${encodedName}`;
+    return getInvitationPublicUrl(invitation.slug || invitation.id, name);
   };
 
   // Send Invitation via WhatsApp
@@ -533,7 +532,7 @@ export const CustomerAdminView: React.FC<CustomerAdminViewProps> = ({
 
             <button
               onClick={() => {
-                const adminLink = `${window.location.origin}/#manage/${invitation.slug || invitation.id}`;
+                const adminLink = getCustomerAdminUrl(invitation.slug || invitation.id);
                 navigator.clipboard.writeText(adminLink);
                 showToast('📋 Link Akses Admin disalin! Bagikan ke pasangan atau keluarga.');
               }}

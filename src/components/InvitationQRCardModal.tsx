@@ -24,7 +24,7 @@ import {
   ScanLine,
 } from 'lucide-react';
 import { InvitationData, EventSchedule } from '../types/invitation';
-import { getPublicBaseUrl } from '../utils/urlHelper';
+import { getBaseAppUrl } from '../utils/urlHelper';
 
 export type QRTargetMode = 'directions' | 'rsvp' | 'full';
 export type QRCardType = 'insert-card' | 'table-tent' | 'souvenir-tag' | 'raw-qr';
@@ -158,12 +158,12 @@ export const InvitationQRCardModal: React.FC<InvitationQRCardModalProps> = ({
       ? invitation.events[selectedEventIdx] || invitation.events[0]
       : undefined;
 
-  // Base URL calculation
-  const baseUrl = getPublicBaseUrl();
+  // Base URL calculation (compatible with GitHub Pages subpaths and Cloud Run)
+  const baseUrl = getBaseAppUrl();
 
   // Build target destination URL
   let targetUrl = '';
-  const guestParam = guestName && !isManualBlankName ? `&to=${encodeURIComponent(guestName.trim())}` : '';
+  const guestParam = guestName && !isManualBlankName ? `?to=${encodeURIComponent(guestName.trim())}` : '';
 
   if (targetMode === 'directions') {
     if (directionsMethod === 'maps') {
@@ -177,11 +177,13 @@ export const InvitationQRCardModal: React.FC<InvitationQRCardModalProps> = ({
       }
     } else {
       // Direct to digital invitation's events section
-      targetUrl = `${baseUrl}#invite/${invitation.slug || invitation.id}&action=directions${guestParam}`;
+      const sep = guestParam ? '&' : '?';
+      targetUrl = `${baseUrl}#invite/${invitation.slug || invitation.id}${guestParam}${sep}action=directions`;
     }
   } else if (targetMode === 'rsvp') {
     // Direct to digital invitation's RSVP form
-    targetUrl = `${baseUrl}#invite/${invitation.slug || invitation.id}&action=rsvp${guestParam}`;
+    const sep = guestParam ? '&' : '?';
+    targetUrl = `${baseUrl}#invite/${invitation.slug || invitation.id}${guestParam}${sep}action=rsvp`;
   } else {
     // Full digital invitation
     targetUrl = `${baseUrl}#invite/${invitation.slug || invitation.id}${guestParam}`;

@@ -2,17 +2,39 @@
 <html lang="id">
   <head>
     <meta charset="utf-8" />
-    <title>Facth Printing - Undangan Digital</title>
+    <title>Vhistetic Undangan Digital</title>
     <script>
-      // Single Page Application redirect for GitHub Pages
-      // Preserves hash and query params
-      var path = window.location.pathname;
-      var repoMatch = path.match(/^\/([^\/]+)/);
-      var basePath = repoMatch ? '/' + repoMatch[1] + '/' : '/';
-      window.location.replace(basePath + window.location.search + window.location.hash);
+      // Single Page Application redirect for GitHub Pages & custom domains
+      // Preserves sub-routes by converting path into hash router format
+      (function() {
+        var pathname = window.location.pathname;
+        var search = window.location.search || '';
+        var hash = window.location.hash || '';
+
+        // If on GitHub Pages (e.g. /repository-name/...)
+        var segments = pathname.replace(/^\/+|\/+$/g, '').split('/');
+        var isGitHubPages = window.location.hostname.indexOf('github.io') !== -1;
+        var repoName = (isGitHubPages && segments.length > 0) ? segments[0] : '';
+        var basePath = repoName ? '/' + repoName + '/' : '/';
+        
+        var subSegments = isGitHubPages ? segments.slice(1) : segments;
+        var subPath = subSegments.join('/');
+
+        // Convert path routes (like invite/slug or manage/slug) to hash routes
+        var targetHash = hash;
+        if (!targetHash && subPath) {
+          targetHash = '#' + subPath;
+        }
+
+        var redirectUrl = basePath + (search ? search : '') + (targetHash ? (search ? '&' : '') + targetHash : '');
+        window.location.replace(redirectUrl);
+      })();
     </script>
   </head>
-  <body>
-    <p>Mengalihkan ke halaman undangan...</p>
+  <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #fafaf9; color: #44403c;">
+    <div style="text-align: center; padding: 24px;">
+      <h2 style="font-size: 18px; margin-bottom: 8px;">Membuka Undangan Digital...</h2>
+      <p style="font-size: 14px; color: #78716c;">Mohon tunggu sebentar, Anda sedang dialihkan.</p>
+    </div>
   </body>
 </html>
