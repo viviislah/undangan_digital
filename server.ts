@@ -280,11 +280,12 @@ app.get('/api/invitations', async (_req, res) => {
 // API: Get invitation by slug or id
 app.get('/api/invitations/:slugOrId', async (req, res) => {
   const { slugOrId } = req.params;
-  const cleanParam = decodeURIComponent(slugOrId).trim().toLowerCase();
+  const rawParam = decodeURIComponent(slugOrId).trim();
+  const cleanParam = rawParam.split('?')[0].split('&')[0].replace(/^\/+|\/+$/g, '').toLowerCase();
 
   // 1. Try PostgreSQL database first
   try {
-    const foundDb = await getInvitationBySlugOrIdFromDb(slugOrId);
+    const foundDb = (await getInvitationBySlugOrIdFromDb(cleanParam)) || (await getInvitationBySlugOrIdFromDb(slugOrId));
     if (foundDb) {
       return res.json(foundDb);
     }

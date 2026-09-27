@@ -46,64 +46,118 @@ function parseCurrentRoute(): ParsedRoute {
   const search = window.location.search || '';
   const params = new URLSearchParams(search);
 
-  // 1. Direct invitation link via hash: #invite/:slug
-  if (hash.startsWith('#invite/')) {
-    const raw = hash.replace('#invite/', '');
-    let slug = raw;
-    let guest = params.get('to') || 'Bapak / Ibu Tamu Terhormat';
+  // Helper to extract query parameter (e.g. to=, guest=, nama=) safely
+  const extractGuestName = (str: string): string => {
+    try {
+      if (params.get('to')) return params.get('to')!.replace(/\+/g, ' ').trim();
+      if (params.get('guest')) return params.get('guest')!.replace(/\+/g, ' ').trim();
+      if (params.get('nama')) return params.get('nama')!.replace(/\+/g, ' ').trim();
 
-    if (raw.includes('&to=')) {
-      guest = decodeURIComponent(raw.split('&to=')[1].split('&')[0]);
-      slug = raw.split('&to=')[0];
-    } else if (raw.includes('?to=')) {
-      guest = decodeURIComponent(raw.split('?to=')[1].split('&')[0]);
-      slug = raw.split('?to=')[0];
+      const toMatch = str.match(/[?&#](?:to|guest|nama)=([^&#]+)/i);
+      if (toMatch && toMatch[1]) {
+        return decodeURIComponent(toMatch[1].replace(/\+/g, ' ')).trim();
+      }
+    } catch {
+      // fallback
     }
-    slug = slug.split('&')[0].split('?')[0];
-    return { view: 'public', slug, guestName: guest };
+    return 'Bapak / Ibu Tamu Terhormat';
+  };
+
+  // Helper to clean slug from slashes, parameters, and fragments
+  const cleanSlug = (raw: string): string => {
+    return raw
+      .split('?')[0]
+      .split('&')[0]
+      .split('#')[0]
+      .replace(/^\/+|\/+$/g, '')
+      .trim();
+  };
+
+  // 1. Direct invitation link via hash: #invite/, #/invite/, #undangan/, #/undangan/, #view/, #/view/
+  const cleanHash = hash.replace(/^#\/?/, ''); // normalizes '#invite/' and '#/invite/' to 'invite/'
+  if (
+    cleanHash.startsWith('invite/') ||
+    cleanHash.startsWith('undangan/') ||
+    cleanHash.startsWith('view/')
+  ) {
+    const prefix = cleanHash.startsWith('invite/')
+      ? 'invite/'
+      : cleanHash.startsWith('undangan/')
+      ? 'undangan/'
+      : 'view/';
+    const raw = cleanHash.slice(prefix.length);
+    const slug = cleanSlug(raw);
+    const guest = extractGuestName(hash);
+    if (slug) {
+      return { view: 'public', slug, guestName: guest };
+    }
   }
 
-  // 2. Direct invitation link via path: /invite/:slug or /undangan/:slug
-  if (pathname.startsWith('/invite/') || pathname.startsWith('/undangan/')) {
-    const prefix = pathname.startsWith('/invite/') ? '/invite/' : '/undangan/';
-    const rawSlug = pathname.replace(prefix, '').split('/')[0].split('?')[0];
-    const guest = params.get('to') || 'Bapak / Ibu Tamu Terhormat';
-    return { view: 'public', slug: rawSlug, guestName: guest };
+  // 2. Direct invitation link via path: /invite/:slug or /undangan/:slug or /view/:slug
+  const cleanPath = pathname.replace(/^\/+/, '');
+  if (
+    cleanPath.startsWith('invite/') ||
+    cleanPath.startsWith('undangan/') ||
+    cleanPath.startsWith('view/')
+  ) {
+    const prefix = cleanPath.startsWith('invite/')
+      ? 'invite/'
+      : cleanPath.startsWith('undangan/')
+      ? 'undangan/'
+      : 'view/';
+    const raw = cleanPath.slice(prefix.length);
+    const slug = cleanSlug(raw);
+    const guest = extractGuestName(search || hash);
+    if (slug) {
+      return { view: 'public', slug, guestName: guest };
+    }
   }
 
-  // 3. Direct invitation query param: ?invite=:slug
-  if (params.get('invite')) {
-    return {
-      view: 'public',
-      slug: params.get('invite')!,
-      guestName: params.get('to') || 'Bapak / Ibu Tamu Terhormat',
-    };
+  // 3. Direct invitation query param: ?invite=:slug, ?undangan=:slug, ?slug=:slug
+  const queryInvite = params.get('invite') || params.get('undangan') || params.get('slug');
+  if (queryInvite) {
+    const slug = cleanSlug(queryInvite);
+    if (slug) {
+      return {
+        view: 'public',
+        slug,
+        guestName: extractGuestName(search || hash),
+      };
+    }
   }
 
-  // 4. Customer Theme Preview via hash: #theme/:id or #preview-theme/:id
-  if (hash.startsWith('#theme/') || hash.startsWith('#preview-theme/')) {
-    const rawThemeId = hash.startsWith('#theme/')
-      ? hash.replace('#theme/', '')
-      : hash.replace('#preview-theme/', '');
+  // 4. Customer Theme Preview via hash: #theme/:id, #/theme/:id, #preview-theme/:id, #/preview-theme/:id
+  if (cleanHash.startsWith('theme/') || cleanHash.startsWith('preview-theme/')) {
+    const prefix = cleanHash.startsWith('theme/') ? 'theme/' : 'preview-theme/';
+    const raw = cleanHash.slice(prefix.length);
+    const rawThemeId = cleanSlug(raw);
     return { view: 'customer-theme-preview', themeId: rawThemeId || 'elegant-gold' };
   }
 
-  // 5. Customer Theme Preview via path: /theme/:id
-  if (pathname.startsWith('/theme/') || pathname.startsWith('/preview-theme/')) {
-    const rawThemeId = pathname.replace(/^\/(theme|preview-theme)\//, '').split('/')[0];
+  // 5. Customer Theme Preview via path: /theme/:id or /preview-theme/:id
+  if (cleanPath.startsWith('theme/') || cleanPath.startsWith('preview-theme/')) {
+    const prefix = cleanPath.startsWith('theme/') ? 'theme/' : 'preview-theme/';
+    const raw = cleanPath.slice(prefix.length);
+    const rawThemeId = cleanSlug(raw);
     return { view: 'customer-theme-preview', themeId: rawThemeId || 'elegant-gold' };
   }
 
-  // 6. Customer Admin / Manage: #manage/:slug or /manage/:slug
-  if (hash.startsWith('#manage/')) {
-    return { view: 'customer-admin', slug: hash.replace('#manage/', '').split('?')[0] };
+  // 6. Customer Admin / Manage: #manage/:slug, #/manage/:slug, /manage/:slug
+  if (cleanHash.startsWith('manage/')) {
+    const slug = cleanSlug(cleanHash.slice('manage/'.length));
+    if (slug) {
+      return { view: 'customer-admin', slug };
+    }
   }
-  if (pathname.startsWith('/manage/')) {
-    return { view: 'customer-admin', slug: pathname.replace('/manage/', '').split('/')[0] };
+  if (cleanPath.startsWith('manage/')) {
+    const slug = cleanSlug(cleanPath.slice('manage/'.length));
+    if (slug) {
+      return { view: 'customer-admin', slug };
+    }
   }
 
   // 7. Catalog scroll: #katalog or #templates
-  if (hash === '#katalog' || hash === '#templates') {
+  if (cleanHash === 'katalog' || cleanHash === 'templates') {
     return { view: 'landing' };
   }
 
@@ -217,14 +271,14 @@ export default function App() {
       } else if (route.view === 'customer-theme-preview') {
         setCustomerPreviewThemeId(route.themeId || 'elegant-gold');
         setCurrentView('customer-theme-preview');
-      } else {
+      } else if (route.view === 'landing') {
         const hash = window.location.hash;
         if (hash === '#katalog' || hash === '#templates') {
           setCurrentView('landing');
           setTimeout(() => {
             document.getElementById('templates-section')?.scrollIntoView({ behavior: 'smooth' });
           }, 150);
-        } else if (hash === '' && (currentView === 'public' || currentView === 'customer-admin' || currentView === 'customer-theme-preview')) {
+        } else if (hash === '' || hash === '#') {
           setCurrentView('landing');
         }
       }

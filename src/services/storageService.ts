@@ -478,8 +478,10 @@ export const loadSampleInvitationsToStorage = (): InvitationData[] => {
 };
 
 export const findInvitationBySlugOrId = (slugOrId: string): InvitationData | undefined => {
+  const clean = slugOrId.toLowerCase().trim().split('?')[0].split('&')[0].replace(/^\/+|\/+$/g, '');
+  if (!clean) return undefined;
+
   const all = getStoredInvitations();
-  const clean = slugOrId.toLowerCase().trim();
   const found = all.find((i) => i.slug?.toLowerCase() === clean || i.id?.toLowerCase() === clean);
   if (found) return found;
 
@@ -496,7 +498,7 @@ export const findInvitationBySlugOrId = (slugOrId: string): InvitationData | und
   if (matchedTmpl) {
     return createNewInvitationFromTemplate(matchedTmpl, {
       title: `The Wedding of Farhan & Nabila (${matchedTmpl.name})`,
-      slug: slugOrId,
+      slug: clean,
       isPublished: true,
     });
   }
@@ -505,8 +507,13 @@ export const findInvitationBySlugOrId = (slugOrId: string): InvitationData | und
 };
 
 export const fetchInvitationBySlugOrIdAsync = async (slugOrId: string): Promise<InvitationData | undefined> => {
+  const clean = slugOrId.toLowerCase().trim().split('?')[0].split('&')[0].replace(/^\/+|\/+$/g, '');
+  if (!clean) return undefined;
+
+  const local = findInvitationBySlugOrId(clean);
+
   try {
-    const res = await fetch(`/api/invitations/${encodeURIComponent(slugOrId)}`);
+    const res = await fetch(`/api/invitations/${encodeURIComponent(clean)}`);
     if (res.ok) {
       const serverInv = await res.json();
       if (serverInv && serverInv.id) {
@@ -518,7 +525,7 @@ export const fetchInvitationBySlugOrIdAsync = async (slugOrId: string): Promise<
     console.warn('Could not fetch invitation from server:', err);
   }
 
-  return findInvitationBySlugOrId(slugOrId);
+  return local;
 };
 
 export const syncAllInvitationsFromServer = async (): Promise<InvitationData[]> => {
@@ -892,7 +899,7 @@ export const createNewInvitationFromTemplate = (
     slug: customData?.slug || `undangan-${Date.now().toString(36)}`,
     title: customData?.title || 'Undangan Pernikahan Kita',
     category: (customData?.category as any) || 'wedding',
-    isPublished: false,
+    isPublished: customData?.isPublished !== undefined ? customData.isPublished : true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     viewsCount: 1,

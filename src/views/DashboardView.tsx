@@ -23,7 +23,6 @@ import { TEMPLATES } from '../data/templates';
 import { WhatsAppShareModal } from '../components/WhatsAppShareModal';
 import { ShareThemeModal } from '../components/ShareThemeModal';
 import { InvitationQRCardModal } from '../components/InvitationQRCardModal';
-import { getInvitationPublicUrl, getPublicBaseUrl } from '../utils/urlHelper';
 
 interface DashboardViewProps {
   invitations: InvitationData[];
@@ -87,7 +86,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const handleCopyLink = (inv: InvitationData) => {
     const guestName = guestNames[inv.id]?.trim() || '';
-    const url = getInvitationPublicUrl(inv, guestName);
+    const baseOrigin = window.location.origin;
+    const baseUrl = `${baseOrigin}/#invite/${inv.slug || inv.id}`;
+    const url = guestName ? `${baseUrl}?to=${encodeURIComponent(guestName)}` : baseUrl;
     
     navigator.clipboard.writeText(url);
     setCopiedId(inv.id);
@@ -104,32 +105,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       formattedPhone = '62' + formattedPhone.substring(1);
     }
 
-    const invitationUrl = getInvitationPublicUrl(inv, guestNames[inv.id]?.trim());
+    const baseOrigin = window.location.origin;
+    const guestParam = guestNames[inv.id]?.trim() ? `?to=${encodeURIComponent(guestNames[inv.id].trim())}` : '';
+    const invitationUrl = `${baseOrigin}/#invite/${inv.slug || inv.id}${guestParam}`;
 
-    const primaryEvent = inv.events?.[0];
-    const dateFormatted = primaryEvent && primaryEvent.tanggal
-      ? (() => {
-          try {
-            return new Date(primaryEvent.tanggal).toLocaleDateString('id-ID', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            });
-          } catch {
-            return primaryEvent.tanggal;
-          }
-        })()
+    const primaryEvent = inv.events[0];
+    const dateFormatted = primaryEvent
+      ? new Date(primaryEvent.tanggal).toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
       : '';
 
-    const groomName = inv.mempelaiPria?.namaPanggilan || inv.mempelaiPria?.namaLengkap || 'Mempelai Pria';
-    const brideName = inv.mempelaiWanita?.namaPanggilan || inv.mempelaiWanita?.namaLengkap || 'Mempelai Wanita';
+    const groomName = inv.mempelaiPria.namaPanggilan;
+    const brideName = inv.mempelaiWanita.namaPanggilan;
 
     const messageContent = `Yth. *${guestName}*
 
 Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i untuk menghadiri perayaan pernikahan kami:
 
-💍 *${inv.mempelaiPria?.namaLengkap || groomName}* & *${inv.mempelaiWanita?.namaLengkap || brideName}*
+💍 *${inv.mempelaiPria.namaLengkap}* & *${inv.mempelaiWanita.namaLengkap}*
 
 📅 *Tanggal:* ${dateFormatted}
 ⏰ *Pukul:* ${primaryEvent?.waktuMulai || '09:00'} ${primaryEvent?.zonaWaktu || 'WIB'}
@@ -145,11 +142,7 @@ Hormat kami yang berbahagia,
 
     const phoneQuery = formattedPhone ? `phone=${formattedPhone}&` : '';
     const waUrl = `https://api.whatsapp.com/send?${phoneQuery}text=${encodeURIComponent(messageContent)}`;
-    const a = document.createElement('a');
-    a.href = waUrl;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.click();
+    window.open(waUrl, '_blank');
   };
 
   return (
@@ -581,7 +574,7 @@ Hormat kami yang berbahagia,
                             <button
                               type="button"
                               onClick={() => {
-                                const manageLink = `${window.location.origin}${window.location.pathname}#manage/${inv.slug || inv.id}`;
+                                const manageLink = `${window.location.origin}/#manage/${inv.slug || inv.id}`;
                                 const text = `Halo, ini adalah link akses admin khusus untuk mengelola daftar tamu & mengirim undangan Anda sendiri via WhatsApp.\n\nSilakan klik link di bawah ini:\n${manageLink}\n\nTerima kasih!`;
                                 window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
                               }}

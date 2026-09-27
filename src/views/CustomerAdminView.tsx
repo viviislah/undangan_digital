@@ -25,7 +25,6 @@ import {
 import { InvitationData, GuestRecord, RSVPRecord, AttendanceStatus, RSVPReply } from '../types/invitation';
 import { fetchRSVPListAsync, submitRSVPReplyAsync, deduplicateRSVPList } from '../services/storageService';
 import { InvitationQRCardModal } from '../components/InvitationQRCardModal';
-import { getInvitationPublicUrl, getPublicBaseUrl } from '../utils/urlHelper';
 
 const LOCAL_CONTACTS_MOCK = [
   { nama: 'Ahmad Fauzi', tel: '081234567890' },
@@ -202,7 +201,9 @@ export const CustomerAdminView: React.FC<CustomerAdminViewProps> = ({
 
   // Generate Personalized Invitation Link
   const generateInviteLink = (name: string) => {
-    return getInvitationPublicUrl(invitation, name);
+    const origin = window.location.origin;
+    const encodedName = encodeURIComponent(name.trim());
+    return `${origin}/#invite/${invitation.slug || invitation.id}?to=${encodedName}`;
   };
 
   // Send Invitation via WhatsApp
@@ -230,13 +231,8 @@ export const CustomerAdminView: React.FC<CustomerAdminViewProps> = ({
       return;
     }
 
-    // Open WhatsApp API safely
-    const waUrl = `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodedText}`;
-    const a = document.createElement('a');
-    a.href = waUrl;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.click();
+    // Open WhatsApp API in new window
+    window.open(`https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodedText}`, '_blank');
   };
 
   // Add Single Guest
@@ -537,7 +533,7 @@ export const CustomerAdminView: React.FC<CustomerAdminViewProps> = ({
 
             <button
               onClick={() => {
-                const adminLink = `${getPublicBaseUrl()}/#manage/${invitation.slug || invitation.id}`;
+                const adminLink = `${window.location.origin}/#manage/${invitation.slug || invitation.id}`;
                 navigator.clipboard.writeText(adminLink);
                 showToast('📋 Link Akses Admin disalin! Bagikan ke pasangan atau keluarga.');
               }}

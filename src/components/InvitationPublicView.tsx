@@ -435,25 +435,58 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
   const templateTransition = getTemplateTransition(invitation.theme?.templateId);
 
   // Luxury opening animation sequence (theme-specific physics and timing)
-  const handleOpenInvitation = (e: React.MouseEvent<HTMLElement>) => {
-    handleRipple(e);
+  const handleOpenInvitation = (e?: React.MouseEvent<HTMLElement>) => {
+    try {
+      if (e) handleRipple(e);
+    } catch {
+      // Ripple is purely cosmetic, ignore any error
+    }
+
+    if (isOpeningSequence) {
+      // If user tapped again during transition, immediately open
+      setIsOpened(true);
+      setIsOpeningSequence(false);
+      if (onOpenedChange) {
+        onOpenedChange(true);
+      }
+      return;
+    }
+
     setIsOpeningSequence(true);
 
     // Play custom user audio URL (Google Drive / Dropbox / Direct MP3)
-    if (invitation.music.enabled && invitation.music.audioUrl) {
-      romanticAudio.play('', invitation.music.audioUrl);
-      setIsPlayingAudio(true);
+    if (invitation.music?.enabled && invitation.music?.audioUrl) {
+      try {
+        romanticAudio.play('', invitation.music.audioUrl);
+        setIsPlayingAudio(true);
+      } catch (err) {
+        console.warn('Audio play notice:', err);
+      }
     }
 
     // Dynamic sequence timing based on template animation physics
     const durationMs = Math.round((themeAnimation.duration || 1.1) * 1000);
-    setTimeout(() => {
+    const mainTimer = setTimeout(() => {
       setIsOpened(true);
       setIsOpeningSequence(false);
       if (onOpenedChange) {
         onOpenedChange(true);
       }
     }, durationMs);
+
+    // Safety fallback: guarantee the invitation is 100% opened even if device delays or interrupts
+    const fallbackTimer = setTimeout(() => {
+      setIsOpened(true);
+      setIsOpeningSequence(false);
+      if (onOpenedChange) {
+        onOpenedChange(true);
+      }
+    }, Math.max(durationMs + 250, 1200));
+
+    return () => {
+      clearTimeout(mainTimer);
+      clearTimeout(fallbackTimer);
+    };
   };
 
   const handleToggleAudio = () => {
@@ -676,9 +709,17 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
       />
 
       {/* 1. OPENING FULLSCREEN COVER MODAL */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {!isOpened && (
-          <div id="invitation-cover-modal" className="absolute inset-0 z-40 w-full h-full overflow-hidden">
+          <motion.div
+            key="invitation-cover-modal"
+            id="invitation-cover-modal"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.05, transition: { duration: 0.45, ease: 'easeOut' } }}
+            className={`absolute inset-0 z-40 w-full h-full overflow-hidden ${
+              isOpeningSequence || isOpened ? 'pointer-events-none' : ''
+            }`}
+          >
             <AnimatedCoverContainer
               type={themeAnimation.type}
               isOpeningSequence={isOpeningSequence}
@@ -808,8 +849,9 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
               >
                 <button
                   id="btn-open-invitation"
+                  type="button"
                   onClick={handleOpenInvitation}
-                  className={`group relative w-full py-3.5 px-6 rounded-full font-semibold text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 overflow-hidden transition-all duration-300 active:scale-95 ${
+                  className={`group relative w-full py-3.5 px-6 rounded-full font-semibold text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 overflow-hidden transition-all duration-300 active:scale-95 cursor-pointer ${
                     isHighContrast ? 'border-2 border-black font-extrabold' : ''
                   }`}
                   style={{
@@ -845,14 +887,14 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
                 />
               )}
             </AnimatedCoverContainer>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Floating Action Controls Dock (Music + High Contrast in one neat unobtrusive bottom-right spot) */}
-      {isOpened && (invitation.music.enabled || showFloatingContrastButton) && (
+      {isOpened && (invitation.music?.enabled || showFloatingContrastButton) && (
         <div className={`${isSimulator ? 'absolute' : 'fixed'} bottom-6 right-5 z-40 flex items-center gap-2 pointer-events-auto`}>
-          {isPlayingAudio && invitation.music.title && (
+          {isPlayingAudio && invitation.music?.title && (
             <motion.div
               initial={{ opacity: 0, x: 15, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
