@@ -7,6 +7,7 @@ import { WizardView } from './views/WizardView';
 import { EditorView } from './views/EditorView';
 import { CustomerAdminView } from './views/CustomerAdminView';
 import { InvitationPublicView } from './components/InvitationPublicView';
+import { InvitationErrorBoundary } from './components/InvitationErrorBoundary';
 import {
   InvitationData,
   TemplateDefinition,
@@ -36,45 +37,95 @@ interface ParsedRoute {
   slug?: string;
   guestName?: string;
   themeId?: string;
+  source?: 'hash' | 'path' | 'query' | 'default';
+}
+
+/**
+ * Robust helper to extract a URL parameter from window.location.search,
+ * window.location.hash query portion, or full URL string.
+ */
+export function extractUrlParam(name: string): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const search = window.location.search || '';
+  const hash = window.location.hash || '';
+
+  // 1. Check window.location.search
+  try {
+    const sp = new URLSearchParams(search);
+    const val = sp.get(name);
+    if (val !== null && val.trim() !== '') return val.replace(/\+/g, ' ').trim();
+  } catch {}
+
+  // 2. Check query string inside hash (#invite/slug?to=...)
+  try {
+    const qIdx = hash.indexOf('?');
+    if (qIdx !== -1) {
+      const hp = new URLSearchParams(hash.slice(qIdx));
+      const val = hp.get(name);
+      if (val !== null && val.trim() !== '') return val.replace(/\+/g, ' ').trim();
+    }
+  } catch {}
+
+  // 3. Fallback regex searching across search and hash (e.g. &to= or ?to=)
+  try {
+    const combined = `${search}&${hash}`;
+    const pattern = new RegExp(`[?&#]${name}=([^&#]+)`, 'i');
+    const match = combined.match(pattern);
+    if (match && match[1]) {
+      return decodeURIComponent(match[1].replace(/\+/g, ' ')).trim();
+    }
+  } catch {}
+
+  return null;
+}
+
+/**
+ * Extracts personalized guest name from any URL parameter (to, guest, nama, for).
+ */
+export function extractGuestName(): string {
+  const paramVal =
+    extractUrlParam('to') ||
+    extractUrlParam('guest') ||
+    extractUrlParam('nama') ||
+    extractUrlParam('for');
+
+  if (paramVal && paramVal.trim() !== '') {
+    return paramVal.trim();
+  }
+  return 'Bapak / Ibu Tamu Terhormat';
+}
+
+/**
+ * Clean slug string safely, removing slashes, query parameters, and fragments.
+ */
+export function cleanSlug(raw: string): string {
+  if (!raw) return '';
+  let cleaned = raw;
+  try {
+    cleaned = decodeURIComponent(cleaned);
+  } catch {}
+
+  return cleaned
+    .split('?')[0]
+    .split('&')[0]
+    .split('#')[0]
+    .replace(/^\/+|\/+$/g, '')
+    .trim()
+    .toLowerCase();
 }
 
 function parseCurrentRoute(): ParsedRoute {
   if (typeof window === 'undefined') return { view: 'landing' };
 
-  const hash = window.location.hash || '';
+  const rawHash = window.location.hash || '';
   const pathname = window.location.pathname || '';
   const search = window.location.search || '';
-  const params = new URLSearchParams(search);
 
-  // Helper to extract query parameter (e.g. to=, guest=, nama=) safely
-  const extractGuestName = (str: string): string => {
-    try {
-      if (params.get('to')) return params.get('to')!.replace(/\+/g, ' ').trim();
-      if (params.get('guest')) return params.get('guest')!.replace(/\+/g, ' ').trim();
-      if (params.get('nama')) return params.get('nama')!.replace(/\+/g, ' ').trim();
-
-      const toMatch = str.match(/[?&#](?:to|guest|nama)=([^&#]+)/i);
-      if (toMatch && toMatch[1]) {
-        return decodeURIComponent(toMatch[1].replace(/\+/g, ' ')).trim();
-      }
-    } catch {
-      // fallback
-    }
-    return 'Bapak / Ibu Tamu Terhormat';
-  };
-
-  // Helper to clean slug from slashes, parameters, and fragments
-  const cleanSlug = (raw: string): string => {
-    return raw
-      .split('?')[0]
-      .split('&')[0]
-      .split('#')[0]
-      .replace(/^\/+|\/+$/g, '')
-      .trim();
-  };
+  // Normalize hash variations: #/invite/, #!/invite/, #invite/, #//invite/
+  const cleanHash = rawHash.replace(/^#[!/]+/, '');
 
   // 1. Direct invitation link via hash: #invite/, #/invite/, #undangan/, #/undangan/, #view/, #/view/
-  const cleanHash = hash.replace(/^#\/?/, ''); // normalizes '#invite/' and '#/invite/' to 'invite/'
   if (
     cleanHash.startsWith('invite/') ||
     cleanHash.startsWith('undangan/') ||
@@ -87,42 +138,29 @@ function parseCurrentRoute(): ParsedRoute {
       : 'view/';
     const raw = cleanHash.slice(prefix.length);
     const slug = cleanSlug(raw);
-    const guest = extractGuestName(hash);
+    const guest = extractGuestName();
     if (slug) {
-      return { view: 'public', slug, guestName: guest };
+      return { view: 'public', slug, guestName: guest, source: 'hash' };
     }
   }
 
-  // 2. Direct invitation link via path: /invite/:slug or /undangan/:slug or /view/:slug
-  const cleanPath = pathname.replace(/^\/+/, '');
-  if (
-    cleanPath.startsWith('invite/') ||
-    cleanPath.startsWith('undangan/') ||
-    cleanPath.startsWith('view/')
-  ) {
-    const prefix = cleanPath.startsWith('invite/')
-      ? 'invite/'
-      : cleanPath.startsWith('undangan/')
-      ? 'undangan/'
-      : 'view/';
-    const raw = cleanPath.slice(prefix.length);
-    const slug = cleanSlug(raw);
-    const guest = extractGuestName(search || hash);
+  // 2. Direct invitation link via pathname: /invite/:slug or /undangan/:slug or /view/:slug
+  // Supports subpaths on GitHub Pages, e.g. /vhistetic-undangan/invite/:slug
+  const pathMatch = pathname.match(/\/(?:invite|undangan|view)\/([^/?#&]+)/i);
+  if (pathMatch && pathMatch[1]) {
+    const slug = cleanSlug(pathMatch[1]);
+    const guest = extractGuestName();
     if (slug) {
-      return { view: 'public', slug, guestName: guest };
+      return { view: 'public', slug, guestName: guest, source: 'path' };
     }
   }
 
   // 3. Direct invitation query param: ?invite=:slug, ?undangan=:slug, ?slug=:slug
-  const queryInvite = params.get('invite') || params.get('undangan') || params.get('slug');
+  const queryInvite = extractUrlParam('invite') || extractUrlParam('undangan') || extractUrlParam('slug');
   if (queryInvite) {
     const slug = cleanSlug(queryInvite);
     if (slug) {
-      return {
-        view: 'public',
-        slug,
-        guestName: extractGuestName(search || hash),
-      };
+      return { view: 'public', slug, guestName: extractGuestName(), source: 'query' };
     }
   }
 
@@ -131,37 +169,37 @@ function parseCurrentRoute(): ParsedRoute {
     const prefix = cleanHash.startsWith('theme/') ? 'theme/' : 'preview-theme/';
     const raw = cleanHash.slice(prefix.length);
     const rawThemeId = cleanSlug(raw);
-    return { view: 'customer-theme-preview', themeId: rawThemeId || 'elegant-gold' };
+    return { view: 'customer-theme-preview', themeId: rawThemeId || 'elegant-gold', source: 'hash' };
   }
 
-  // 5. Customer Theme Preview via path: /theme/:id or /preview-theme/:id
-  if (cleanPath.startsWith('theme/') || cleanPath.startsWith('preview-theme/')) {
-    const prefix = cleanPath.startsWith('theme/') ? 'theme/' : 'preview-theme/';
-    const raw = cleanPath.slice(prefix.length);
-    const rawThemeId = cleanSlug(raw);
-    return { view: 'customer-theme-preview', themeId: rawThemeId || 'elegant-gold' };
+  // 5. Customer Theme Preview via path: /theme/:id or /preview-theme/:id (supports subpaths)
+  const themeMatch = pathname.match(/\/(?:theme|preview-theme)\/([^/?#&]+)/i);
+  if (themeMatch && themeMatch[1]) {
+    const rawThemeId = cleanSlug(themeMatch[1]);
+    return { view: 'customer-theme-preview', themeId: rawThemeId || 'elegant-gold', source: 'path' };
   }
 
   // 6. Customer Admin / Manage: #manage/:slug, #/manage/:slug, /manage/:slug
   if (cleanHash.startsWith('manage/')) {
     const slug = cleanSlug(cleanHash.slice('manage/'.length));
     if (slug) {
-      return { view: 'customer-admin', slug };
+      return { view: 'customer-admin', slug, source: 'hash' };
     }
   }
-  if (cleanPath.startsWith('manage/')) {
-    const slug = cleanSlug(cleanPath.slice('manage/'.length));
+  const manageMatch = pathname.match(/\/manage\/([^/?#&]+)/i);
+  if (manageMatch && manageMatch[1]) {
+    const slug = cleanSlug(manageMatch[1]);
     if (slug) {
-      return { view: 'customer-admin', slug };
+      return { view: 'customer-admin', slug, source: 'path' };
     }
   }
 
   // 7. Catalog scroll: #katalog or #templates
   if (cleanHash === 'katalog' || cleanHash === 'templates') {
-    return { view: 'landing' };
+    return { view: 'landing', source: 'hash' };
   }
 
-  return { view: 'landing' };
+  return { view: 'landing', source: 'default' };
 }
 
 export default function App() {
@@ -177,18 +215,41 @@ export default function App() {
   const [guestNameParam, setGuestNameParam] = useState<string>(initialRoute.guestName || 'Bapak / Ibu Tamu Terhormat');
   const [isLoadingPublicInvitation, setIsLoadingPublicInvitation] = useState<boolean>(initialRoute.view === 'public');
 
-  // Load public invitation by slug
+  // Load public invitation by slug with comprehensive diagnostic logging
   const loadPublicInvitation = useCallback((slug: string, guestName?: string) => {
+    const timestamp = new Date().toLocaleTimeString('id-ID');
+    console.log(`[InvitationRouter ${timestamp}] >>> loadPublicInvitation called`, {
+      requestedSlug: slug,
+      guestNameArg: guestName,
+      currentHref: typeof window !== 'undefined' ? window.location.href : '',
+      pathname: typeof window !== 'undefined' ? window.location.pathname : '',
+      hash: typeof window !== 'undefined' ? window.location.hash : '',
+      search: typeof window !== 'undefined' ? window.location.search : '',
+    });
+
     if (!slug) {
+      console.warn(`[InvitationRouter ${timestamp}] loadPublicInvitation aborted: slug is empty.`);
       setIsLoadingPublicInvitation(false);
       return;
     }
 
     setIsLoadingPublicInvitation(true);
-    const targetGuest = guestName || 'Bapak / Ibu Tamu Terhormat';
+    const targetGuest = (guestName && guestName.trim() !== '') ? guestName.trim() : extractGuestName();
+    console.log(`[InvitationRouter ${timestamp}] Resolved target guest name: "${targetGuest}"`);
     setGuestNameParam(targetGuest);
 
-    const applyInvitation = (inv: InvitationData) => {
+    const applyInvitation = (inv: InvitationData, source: 'local' | 'network' | 'preseeded') => {
+      console.log(`[InvitationRouter ${timestamp}] Applying invitation data into state from source: "${source}":`, {
+        id: inv.id,
+        slug: inv.slug,
+        title: inv.title,
+        isPublished: inv.isPublished,
+        themeId: inv.theme?.templateId,
+        eventsCount: inv.events?.length || 0,
+        photosCount: inv.gallery?.length || 0,
+        rsvpCount: inv.rsvpList?.length || 0,
+      });
+
       let updatedGuests = inv.guests || [];
       let wasUpdated = false;
       const cleanGuestName = targetGuest.trim();
@@ -204,6 +265,7 @@ export default function App() {
       }
 
       if (wasUpdated) {
+        console.log(`[InvitationRouter ${timestamp}] Guest "${cleanGuestName}" marked as opened. Saving to storage.`);
         inv.guests = updatedGuests;
         saveInvitationToStorage(inv, true);
         const currentList = getStoredInvitations();
@@ -214,25 +276,36 @@ export default function App() {
       setIsLoadingPublicInvitation(false);
       setCurrentView('public');
       incrementViewCount(inv.id);
+      console.log(`[InvitationRouter ${timestamp}] SUCCESS: InvitationPublicView rendered successfully for slug: "${slug}"`);
     };
 
-    // 1. Instant local lookup
+    // Step 1: Instant local lookup (Memory, LocalStorage, Bundled Preseeded data)
+    console.log(`[InvitationRouter ${timestamp}] Step 1: Performing instant local lookup for slug: "${slug}"...`);
     const localFound = findInvitationBySlugOrId(slug);
     if (localFound) {
-      applyInvitation(localFound);
+      console.log(`[InvitationRouter ${timestamp}] Step 1 SUCCESS: Found invitation locally: "${localFound.title}" (slug: ${localFound.slug})`);
+      applyInvitation(localFound, 'local');
+    } else {
+      const stored = getStoredInvitations();
+      console.log(`[InvitationRouter ${timestamp}] Step 1 NOTICE: Not in local storage. Available stored slugs: [${stored.map((i) => i.slug).join(', ')}]`);
     }
 
-    // 2. Fetch from server so cross-device and latest updates apply
+    // Step 2: Async server / static JSON lookup (Cross-device persistence & GitHub Pages static bundle)
+    console.log(`[InvitationRouter ${timestamp}] Step 2: Fetching invitation asynchronously from server / static endpoints...`);
     fetchInvitationBySlugOrIdAsync(slug)
       .then((serverInv) => {
         if (serverInv) {
-          applyInvitation(serverInv);
+          console.log(`[InvitationRouter ${timestamp}] Step 2 SUCCESS: Server / static fetch found: "${serverInv.title}" (slug: ${serverInv.slug})`);
+          applyInvitation(serverInv, 'network');
         } else if (!localFound) {
+          console.warn(`[InvitationRouter ${timestamp}] Step 2 FAILED: Invitation for slug "${slug}" not found on server or static storage.`);
           setIsLoadingPublicInvitation(false);
+        } else {
+          console.log(`[InvitationRouter ${timestamp}] Step 2 COMPLETE: Server fetch returned nothing new, keeping locally resolved invitation.`);
         }
       })
       .catch((err) => {
-        console.warn('Failed to fetch public invitation:', err);
+        console.error(`[InvitationRouter ${timestamp}] Step 2 ERROR: Network fetch failed for slug "${slug}":`, err);
         if (!localFound) {
           setIsLoadingPublicInvitation(false);
         }
@@ -243,15 +316,27 @@ export default function App() {
   useEffect(() => {
     const loaded = getStoredInvitations();
     setInvitations(loaded);
+    console.log('[InvitationRouter] Root useEffect mounted. Loaded stored invitations:', loaded.length);
 
-    syncAllInvitationsFromServer().then((synced) => {
-      if (synced && synced.length > 0) {
-        setInvitations(synced);
-      }
-    });
+    syncAllInvitationsFromServer()
+      .then((synced) => {
+        console.log('[InvitationRouter] syncAllInvitationsFromServer finished. Count:', synced?.length || 0);
+        if (synced && synced.length > 0) {
+          setInvitations(synced);
+          const currentRoute = parseCurrentRoute();
+          if (currentRoute.view === 'public' && currentRoute.slug) {
+            console.log('[InvitationRouter] Background sync complete. Re-evaluating public route for slug:', currentRoute.slug);
+            loadPublicInvitation(currentRoute.slug, currentRoute.guestName);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('[InvitationRouter] Background sync warning:', err);
+      });
 
     const handleRouteChange = () => {
       const route = parseCurrentRoute();
+      console.log('[InvitationRouter] handleRouteChange triggered:', route);
 
       if (route.view === 'public' && route.slug) {
         loadPublicInvitation(route.slug, route.guestName);
@@ -286,6 +371,7 @@ export default function App() {
 
     // If initial load targeted a public invitation, fetch it now
     if (initialRoute.view === 'public' && initialRoute.slug) {
+      console.log('[InvitationRouter] Initial route is public view. Triggering loadPublicInvitation:', initialRoute);
       loadPublicInvitation(initialRoute.slug, initialRoute.guestName);
     } else if (initialRoute.view === 'customer-admin' && initialRoute.slug) {
       handleRouteChange();
@@ -409,16 +495,23 @@ export default function App() {
 
     if (publicInvitation) {
       return (
-        <div className="min-h-screen bg-stone-900 flex justify-center">
-          <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative">
-            <InvitationPublicView
-              invitation={publicInvitation}
-              guestName={guestNameParam}
-              onAddRSVP={handleAddPublicRSVP}
-              onAddRSVPReply={handleAddPublicRSVPReply}
-            />
+        <InvitationErrorBoundary
+          fallbackSlug={publicInvitation.slug || publicInvitation.id}
+          onReset={() => {
+            loadPublicInvitation(publicInvitation.slug || publicInvitation.id, guestNameParam);
+          }}
+        >
+          <div className="min-h-screen bg-stone-900 flex justify-center">
+            <div className="w-full max-w-md bg-white min-h-screen shadow-2xl relative">
+              <InvitationPublicView
+                invitation={publicInvitation}
+                guestName={guestNameParam}
+                onAddRSVP={handleAddPublicRSVP}
+                onAddRSVPReply={handleAddPublicRSVPReply}
+              />
+            </div>
           </div>
-        </div>
+        </InvitationErrorBoundary>
       );
     }
 

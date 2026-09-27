@@ -82,6 +82,12 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
   const [isOpened, setIsOpened] = useState(forceOpened ?? false);
   const [isOpeningSequence, setIsOpeningSequence] = useState(false);
 
+  // Safe guarded arrays to prevent any undefined.map crashes
+  const safeEvents = Array.isArray(invitation?.events) ? invitation.events : [];
+  const safeGallery = Array.isArray(invitation?.gallery) ? invitation.gallery : [];
+  const safeBankAccounts = Array.isArray(invitation?.bankAccounts) ? invitation.bankAccounts : [];
+  const safeLoveStories = Array.isArray(invitation?.loveStories) ? invitation.loveStories : [];
+
   // Global high contrast accessibility toggle state with localStorage persistence
   const [internalHighContrast, setInternalHighContrast] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -195,6 +201,14 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
       setLiveRsvpList(deduplicateRSVPList(invitation.rsvpList));
     }
   }, [invitation.rsvpList]);
+
+  // Synchronize guestName prop updates (e.g. from async URL route changes)
+  useEffect(() => {
+    if (guestName && guestName !== 'Bapak / Ibu Tamu Terhormat' && guestName !== 'Tamu Undangan') {
+      setRsvpName((prev) => (!prev ? guestName : prev));
+      setReplyName((prev) => (!prev ? guestName : prev));
+    }
+  }, [guestName]);
 
   // Periodic poll to ensure wishes submitted by anyone on any device appear live and never disappear
   useEffect(() => {
@@ -1457,7 +1471,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
         </IntersectionSection>
 
         <div className="space-y-6">
-          {invitation.events.map((eventItem, idx) => {
+          {safeEvents.map((eventItem, idx) => {
             const formattedDate = formatIndonesianDate(eventItem.tanggal);
 
             return (
@@ -1620,7 +1634,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
             className="relative border-l-2 ml-4 space-y-8 pl-6 my-4"
             style={{ borderColor: invitation.theme?.storyYearColor || invitation.theme?.storyHeadingColor || themeVisuals.palette.primary, opacity: 0.85 }}
           >
-            {invitation.loveStories.map((story, sIndex) => (
+            {safeLoveStories.map((story, sIndex) => (
               <IntersectionSection
                 as="div"
                 key={story.id}
@@ -1723,7 +1737,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
 
           {/* Asymmetric Editorial Grid */}
           <div className="grid grid-cols-2 gap-3.5">
-            {invitation.gallery.map((photo, index) => {
+            {safeGallery.map((photo, index) => {
               const isLarge = index % 3 === 0;
 
               return (
@@ -1810,7 +1824,7 @@ export const InvitationPublicView: React.FC<InvitationPublicViewProps> = ({
           </IntersectionSection>
 
           <div className="space-y-3 pt-1">
-            {invitation.bankAccounts.map((bank, idx) => {
+            {safeBankAccounts.map((bank, idx) => {
               return (
                 <IntersectionSection
                   as="div"
