@@ -1,8 +1,10 @@
 import { InvitationData, RSVPRecord, RSVPReply, TemplateDefinition } from '../types/invitation';
 import { TEMPLATES } from '../data/templates';
 import { saveAudioTrack, resolveAudioUrl } from './audioStorage';
+import preseededInvitationsRaw from '../../data/invitations.json';
 
 const STORAGE_KEY = 'undanganku_invitations_v1';
+export const PRESEEDED_INVITATIONS: InvitationData[] = (preseededInvitationsRaw as unknown as InvitationData[]) || [];
 
 export const SAMPLE_INVITATION_1: InvitationData = {
   id: 'inv-gold-001',
@@ -251,80 +253,46 @@ export const SAMPLE_INVITATION_2: InvitationData = {
 
 export const getStoredInvitations = (): InvitationData[] => {
   try {
-    const ALL_PURGED_FLAG = 'undanganku_all_invitations_purged_v2';
-    // If the purge flag is not set yet, purge all saved invitations as requested
-    if (!localStorage.getItem(ALL_PURGED_FLAG)) {
-      try {
-        localStorage.setItem(STORAGE_KEY, '[]');
-        localStorage.setItem(ALL_PURGED_FLAG, 'true');
-      } catch {}
-      return [];
-    }
-
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw || raw === '[]') {
-      return [];
+    let parsed: InvitationData[] = [];
+    if (raw && raw !== '[]') {
+      try {
+        const json = JSON.parse(raw);
+        if (Array.isArray(json)) {
+          parsed = json;
+        }
+      } catch {}
     }
-    let parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      if (parsed.length === 0) return [];
-      let changed = false;
 
-      // Purge any stale draft invitations requested by user
-      const DRAFTS_PURGED_FLAG = 'wedding_drafts_purged_flag_v1';
-      if (!localStorage.getItem(DRAFTS_PURGED_FLAG)) {
-        const nonDrafts = parsed.filter((inv: any) => inv.isPublished !== false);
-        if (nonDrafts.length !== parsed.length) {
-          parsed = nonDrafts;
-          changed = true;
-        }
-        try {
-          localStorage.setItem(DRAFTS_PURGED_FLAG, 'true');
-        } catch {}
-      }
+    // Merge preseeded invitations (e.g. arya-citra) so that invitations are NEVER missing
+    // on newly opened devices or static GitHub Pages hosting
+    const map = new Map<string, InvitationData>();
 
-      // Clear mock RSVPs from default sample invitations to keep list pristine
-      const cleaned = parsed.map((inv: any) => {
-        let updatedInv = { ...inv };
-        if (inv.id === 'inv-gold-001' && (!updatedInv.coverPhotoUrl || updatedInv.coverPhotoUrl.includes('photo-1519741497674-611481863552'))) {
-          updatedInv.coverPhotoUrl = '/images/Salinan-foto-profil.png';
-          changed = true;
-        }
-        // Auto-heal stale /uploads/ URLs from localhost development that do not exist on static hosting
-        if (updatedInv.coverPhotoUrl && (updatedInv.coverPhotoUrl.startsWith('/uploads/') || updatedInv.coverPhotoUrl.startsWith('uploads/'))) {
-          updatedInv.coverPhotoUrl = '/images/Salinan-foto-profil.png';
-          changed = true;
-        }
-        if (updatedInv.mempelaiPria?.fotoUrl && (updatedInv.mempelaiPria.fotoUrl.startsWith('/uploads/') || updatedInv.mempelaiPria.fotoUrl.startsWith('uploads/'))) {
-          updatedInv.mempelaiPria = {
-            ...updatedInv.mempelaiPria,
-            fotoUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80',
-          };
-          changed = true;
-        }
-        if (updatedInv.mempelaiWanita?.fotoUrl && (updatedInv.mempelaiWanita.fotoUrl.startsWith('/uploads/') || updatedInv.mempelaiWanita.fotoUrl.startsWith('uploads/'))) {
-          updatedInv.mempelaiWanita = {
-            ...updatedInv.mempelaiWanita,
-            fotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
-          };
-          changed = true;
-        }
-        if (inv.id === 'inv-gold-001' || inv.id === 'inv-black-002') {
-          updatedInv.rsvpList = [];
-        }
-        return updatedInv;
-      });
-      if (changed) {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
-        } catch {}
+    // 1. Put preseeded invitations first
+    PRESEEDED_INVITATIONS.forEach((inv) => {
+      if (inv && inv.id) {
+        map.set(inv.id, inv);
       }
-      return cleaned;
+    });
+
+    // 2. Overlay user local changes / updates
+    parsed.forEach((inv) => {
+      if (inv && inv.id) {
+        map.set(inv.id, inv);
+      }
+    });
+
+    const result = Array.from(map.values());
+    if (result.length > 0 && (!raw || raw === '[]')) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(result));
+      } catch {}
     }
-    return [];
+
+    return result;
   } catch (err) {
     console.error('Error reading localStorage invitations:', err);
-    return [];
+    return PRESEEDED_INVITATIONS;
   }
 };
 
@@ -481,11 +449,29 @@ export const findInvitationBySlugOrId = (slugOrId: string): InvitationData | und
   const clean = slugOrId.toLowerCase().trim().split('?')[0].split('&')[0].replace(/^\/+|\/+$/g, '');
   if (!clean) return undefined;
 
+  // 1. Check in stored (which already includes merged preseeded)
   const all = getStoredInvitations();
   const found = all.find((i) => i.slug?.toLowerCase() === clean || i.id?.toLowerCase() === clean);
   if (found) return found;
 
-  // Fallback to sample invitations
+  // 2. Direct lookup in bundled preseeded invitations (e.g. arya-citra)
+  const preseeded = PRESEEDED_INVITATIONS.find(
+    (i) =>
+      i.slug?.toLowerCase() === clean ||
+      i.id?.toLowerCase() === clean ||
+      (i.slug && clean.includes(i.slug.toLowerCase())) ||
+      (i.slug && i.slug.toLowerCase().includes(clean))
+  );
+  if (preseeded) return preseeded;
+
+  // 3. If visitor opens generic keyword, fallback to active preseeded invitation
+  if (clean === 'invite' || clean === 'undangan' || clean === 'wedding' || clean === 'pernikahan' || clean === 'arya') {
+    if (PRESEEDED_INVITATIONS.length > 0) {
+      return PRESEEDED_INVITATIONS[0];
+    }
+  }
+
+  // 4. Fallback to sample invitations
   if (clean === 'rizky-amanda' || clean === SAMPLE_INVITATION_1.slug || clean === SAMPLE_INVITATION_1.id) {
     return SAMPLE_INVITATION_1;
   }
@@ -493,7 +479,7 @@ export const findInvitationBySlugOrId = (slugOrId: string): InvitationData | und
     return SAMPLE_INVITATION_2;
   }
 
-  // Fallback to template sample
+  // 4. Fallback to template sample
   const matchedTmpl = TEMPLATES.find((t) => t.id === clean || clean.includes(t.id));
   if (matchedTmpl) {
     return createNewInvitationFromTemplate(matchedTmpl, {
@@ -512,6 +498,7 @@ export const fetchInvitationBySlugOrIdAsync = async (slugOrId: string): Promise<
 
   const local = findInvitationBySlugOrId(clean);
 
+  // 1. Try Express backend API
   try {
     const res = await fetch(`/api/invitations/${encodeURIComponent(clean)}`);
     if (res.ok) {
@@ -521,36 +508,57 @@ export const fetchInvitationBySlugOrIdAsync = async (slugOrId: string): Promise<
         return serverInv;
       }
     }
-  } catch (err) {
-    console.warn('Could not fetch invitation from server:', err);
-  }
+  } catch {}
+
+  // 2. Try static public invitations file (essential for GitHub Pages)
+  try {
+    const base = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || './';
+    const cleanBase = base.endsWith('/') ? base : `${base}/`;
+    const staticRes = await fetch(`${cleanBase}data/invitations.json`);
+    if (staticRes.ok) {
+      const staticList = await staticRes.json();
+      if (Array.isArray(staticList)) {
+        const found = staticList.find(
+          (i: InvitationData) => i.slug?.toLowerCase() === clean || i.id?.toLowerCase() === clean
+        );
+        if (found) {
+          saveInvitationToStorage(found, false);
+          return found;
+        }
+      }
+    }
+  } catch {}
 
   return local;
 };
 
 export const syncAllInvitationsFromServer = async (): Promise<InvitationData[]> => {
+  // 1. Try Express backend API
   try {
     const res = await fetch('/api/invitations');
     if (res.ok) {
       const serverList = await res.json();
-      if (Array.isArray(serverList)) {
-        const local = getStoredInvitations();
-        const map = new Map<string, InvitationData>();
-        // Only keep local if published; do not restore deleted drafts
-        local.forEach((inv) => {
-          if (inv.isPublished !== false) {
-            map.set(inv.id, inv);
-          }
-        });
-        serverList.forEach((inv: InvitationData) => map.set(inv.id, inv));
-        const merged = Array.from(map.values());
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-        return merged;
+      if (Array.isArray(serverList) && serverList.length > 0) {
+        serverList.forEach((inv) => saveInvitationToStorage(inv, false));
+        return getStoredInvitations();
       }
     }
-  } catch (err) {
-    // offline or static mode
-  }
+  } catch {}
+
+  // 2. Fallback to static public invitations (for GitHub Pages)
+  try {
+    const base = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || './';
+    const cleanBase = base.endsWith('/') ? base : `${base}/`;
+    const staticRes = await fetch(`${cleanBase}data/invitations.json`);
+    if (staticRes.ok) {
+      const staticList = await staticRes.json();
+      if (Array.isArray(staticList) && staticList.length > 0) {
+        staticList.forEach((inv) => saveInvitationToStorage(inv, false));
+        return getStoredInvitations();
+      }
+    }
+  } catch {}
+
   return getStoredInvitations();
 };
 

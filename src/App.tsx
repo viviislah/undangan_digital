@@ -437,14 +437,31 @@ export default function App() {
               Mohon maaf, tautan undangan pernikahan ini tidak ditemukan atau belum dipublikasikan. Silakan hubungi pengantin atau vendor untuk mendapatkan tautan terbaru.
             </p>
           </div>
-          <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
+          <div className="pt-2 flex flex-col gap-2.5 justify-center">
+            {(() => {
+              const available = getStoredInvitations().find((i) => i.isPublished);
+              if (available) {
+                return (
+                  <button
+                    onClick={() => {
+                      loadPublicInvitation(available.slug || available.id);
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-md transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span>Buka Undangan ({available.mempelaiPria.namaPanggilan} & {available.mempelaiWanita.namaPanggilan})</span>
+                  </button>
+                );
+              }
+              return null;
+            })()}
+
             <button
               onClick={() => {
                 window.location.hash = '';
                 window.location.pathname = '/';
                 setCurrentView('landing');
               }}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-semibold shadow-md transition-all active:scale-95 cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-all active:scale-95 cursor-pointer border border-stone-200"
             >
               <span>Buka Halaman Utama</span>
             </button>
